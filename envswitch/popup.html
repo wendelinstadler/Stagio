@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>EnvSwitch</title>
+<style>
+  :root { --bg:#fff; --fg:#1c1c1e; --muted:#6b6b70; --line:#e2e2e6; --accent:#1a73e8; --soft:#f1f3f6; --bad:#b3261e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; width:380px; padding:12px; display:grid; grid-template-columns:minmax(0,1fr); gap:12px; background:var(--bg); color:var(--fg); font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  h1 { margin:0; font-size:13px; font-weight:600; color:var(--muted); }
+  .envs { display:grid; gap:6px; }
+  .env { display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); font:inherit; text-align:left; cursor:pointer; }
+  .env:hover { background:var(--soft); }
+  .env[aria-current="true"] { border-color:var(--accent); background:var(--soft); cursor:default; }
+  .dot { width:10px; height:10px; border-radius:50%; flex:none; }
+  .env b { flex:none; }
+  .env span.o { color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .muted { color:var(--muted); font-size:12px; }
+  .bad { color:var(--bad); font-size:12px; }
+  #list { display:grid; gap:8px; }
+  .proj { border:1px solid var(--line); border-radius:8px; padding:8px 10px; display:grid; grid-template-columns:minmax(0,1fr); gap:6px; }
+  .head { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+  .head b { overflow-wrap:anywhere; }
+  .pages { display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px; }
+  .pages .who { display:flex; align-items:center; gap:6px; min-width:58px; font-weight:600; }
+  .chip { padding:2px 9px; border:1px solid var(--line); border-radius:999px; background:var(--bg); color:var(--fg); font:inherit; font-size:12px; cursor:pointer; }
+  .chip:hover { background:var(--soft); }
+  .chip.all { margin-left:auto; border-color:var(--accent); color:var(--accent); font-weight:600; }
+  form { display:grid; grid-template-columns:minmax(0,1fr); gap:6px; padding:10px; background:var(--soft); border-radius:8px; }
+  input, textarea { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; }
+  textarea { font-family:ui-monospace,Consolas,monospace; font-size:12px; resize:vertical; }
+  label.f { display:grid; gap:2px; font-size:12px; color:var(--muted); }
+  .row { display:flex; gap:8px; justify-content:flex-end; align-items:center; }
+  button.btn { padding:6px 10px; border:0; border-radius:6px; background:var(--accent); color:var(--bg); font:inherit; font-weight:600; cursor:pointer; }
+  button.link { border:0; background:none; color:var(--muted); font:inherit; font-size:12px; cursor:pointer; padding:0 0 0 8px; }
+  button.link:hover { color:var(--fg); }
+  button.link.open { color:var(--accent); font-weight:600; }
+  [data-armed] { border-color:var(--bad) !important; color:var(--bad) !important; font-weight:600; }
+  .note { display:flex; gap:8px; justify-content:space-between; align-items:baseline; }
+  footer a { color:var(--muted); }
+  footer a:hover { color:var(--accent); }
+  button.plain { padding:0; margin-top:6px; color:var(--accent); }
+</style>
+</head>
+<body>
+<section id="now"></section>
+<section id="list"></section>
+<form id="form">
+  <h1 id="formTitle">Projekt hinzufügen</h1>
+  <input id="name" placeholder="Projektname" required>
+  <label class="f">Umgebungen (Name = Adresse, Name frei wählbar)
+    <textarea id="envs" rows="3" required placeholder="Lokal = http://localhost:3000&#10;Test = test.example.ch&#10;Prod 2 = https://www.example.ch"></textarea>
+  </label>
+  <div><button type="button" class="link plain" id="addCurrent" style="margin-top:0" hidden>Aktuelle Seite als Zeile einfügen</button></div>
+  <label class="f">Seiten (optional, Name = Pfad)
+    <textarea id="pages" rows="3" placeholder="Shop = /&#10;Backoffice = /backoffice&#10;Admin = /admin"></textarea>
+  </label>
+  <div class="muted">Weicht eine Seite in einer Umgebung ab, eine Zeile mit @ ergänzen: <code>Backoffice @ Prod = /anderer-pfad</code></div>
+  <div class="muted">Tastenkürzel: Alt+Shift+E schaltet die Umgebung weiter, Alt+Shift+1 bis 3 springt direkt. Auf Live geht es nur per Klick.</div>
+  <div class="bad" id="err"></div>
+  <div class="row">
+    <button type="button" class="link" id="cancel" hidden>Abbrechen</button>
+    <button class="btn" id="submit">Speichern</button>
+  </div>
+</form>
+<label class="muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="marker" style="width:auto"> Umgebung auf der Seite markieren (Farbbalken und Tab-Titel)</label>
+<footer class="muted" style="text-align:center"><a href="https://github.com/wendelinstadler/envswitch" target="_blank" rel="noopener noreferrer">EnvSwitch auf GitHub</a></footer>
+<script src="common.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
