@@ -53,11 +53,33 @@
   label.f { display:grid; gap:3px; font-size:12px; color:var(--muted); }
   #toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); padding:8px 14px; border-radius:8px; background:var(--fg); color:var(--bg); }
   @media (max-width:560px) { .repo { grid-template-columns:minmax(0,1fr); } }
+  .envh { display:grid; grid-template-columns:minmax(0,170px) minmax(0,1fr); gap:6px 12px; align-items:start; padding:8px 0; border-top:1px solid var(--line); }
+  .envh:first-of-type { border-top:0; }
+  .envh .who { display:grid; gap:2px; }
+  .envh .who b { display:flex; align-items:center; gap:6px; }
+  .envh .who span { color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
+  .edot { width:10px; height:10px; border-radius:50%; flex:none; }
+  textarea { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:12px ui-monospace,Consolas,monospace; resize:vertical; }
+  .herr { color:var(--bad); font-size:12px; }
+  @media (max-width:560px) { .envh { grid-template-columns:minmax(0,1fr); } }
 </style>
 </head>
 <body>
 <main>
   <header><img src="icons/48.png" alt=""><h1>EnvSwitch Einstellungen</h1></header>
+
+  <section>
+    <h2>Allgemein</h2>
+    <div class="feats" id="general"></div>
+  </section>
+
+  <section>
+    <h2>Projekte: Header-Presets und Server-Status</h2>
+    <div class="muted">Header-Presets werden bei jedem Aufruf dieser Umgebung mitgeschickt (Seiten, Bilder, API-Aufrufe), z. B. <code>X-Debug: true</code> oder <code>Authorization: Bearer {{token}}</code>. <code>{{variablen}}</code> der Umgebung werden eingesetzt. Eine Zeile <code>Cookie: name=wert</code> ergänzt ein Cookie.</div>
+    <div id="projects"></div>
+  </section>
+
+  <h2 style="margin:10px 0 -6px;font-size:17px">Branch Manager</h2>
 
   <section>
     <h2>1. Hilfsprogramm einrichten</h2>

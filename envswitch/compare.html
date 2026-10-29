@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vergleich · EnvSwitch</title>
+<link rel="icon" href="icons/48.png">
+<style>
+  :root { --bg:#fff; --fg:#1c1c1e; --muted:#6b6b70; --line:#e2e2e6; --accent:#1a73e8; --soft:#f1f3f6; --bad:#b3261e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; }
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  html, body { height:100%; }
+  body { margin:0; display:flex; flex-direction:column; background:var(--soft); color:var(--fg); font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  header { display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; padding:8px 14px; border-bottom:1px solid var(--line); background:var(--bg); }
+  .logo { display:flex; align-items:center; gap:8px; font-weight:700; }
+  .logo img { width:20px; height:20px; }
+  input, select { padding:5px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; }
+  #path { flex:1; min-width:180px; font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+  .seg { display:flex; padding:2px; border-radius:7px; background:var(--soft); }
+  .seg button { padding:3px 10px; border:0; border-radius:5px; background:none; color:var(--muted); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+  .seg button[aria-pressed="true"] { background:var(--bg); color:var(--fg); box-shadow:0 1px 2px rgba(0,0,0,.12); }
+  .btn { padding:6px 12px; border:0; border-radius:6px; background:var(--accent); color:var(--bg); font:inherit; font-weight:600; cursor:pointer; }
+  .panes { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px; }
+  .pane { min-width:0; min-height:0; display:flex; flex-direction:column; border:1px solid var(--line); border-radius:8px; background:var(--bg); overflow:hidden; }
+  .phead { display:flex; align-items:center; gap:8px; padding:6px 10px; border-bottom:1px solid var(--line); font-size:12px; }
+  .phead .u { flex:1; min-width:0; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:ui-monospace,Consolas,monospace; font-size:11px; }
+  .phead a { color:var(--accent); text-decoration:none; white-space:nowrap; }
+  .dot { width:10px; height:10px; border-radius:50%; flex:none; }
+  .frame { position:relative; flex:1; min-height:0; overflow:hidden; background:#fff; }
+  .frame iframe { position:absolute; top:0; left:0; border:0; transform-origin:0 0; background:#fff; }
+  .note { padding:0 14px 10px; color:var(--muted); font-size:12px; }
+  .warn { margin:10px 10px 0; padding:8px 12px; border-radius:8px; background:color-mix(in srgb, #e37400 14%, var(--bg)); display:flex; gap:10px; align-items:center; }
+  @media (max-width:760px) { .panes { grid-template-columns:1fr; grid-auto-rows:minmax(360px, 1fr); overflow:auto; } }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo"><img src="icons/48.png" alt="">Vergleich</span>
+  <select id="envA" title="Linke Umgebung"></select>
+  <select id="envB" title="Rechte Umgebung"></select>
+  <input id="path" spellcheck="false" placeholder="/pfad?parameter">
+  <div class="seg" id="sizes"></div>
+  <button class="btn" id="reload">Laden</button>
+</header>
+<div class="warn" id="perm" hidden><span style="flex:1">Für den Vergleich braucht EnvSwitch Zugriff auf beide Adressen (damit Seiten im Rahmen angezeigt werden dürfen).</span><button class="btn" id="allow">Erlauben</button></div>
+<div class="panes">
+  <div class="pane"><div class="phead" id="headA"></div><div class="frame" id="frameA"></div></div>
+  <div class="pane"><div class="phead" id="headB"></div><div class="frame" id="frameB"></div></div>
+</div>
+<div class="note">Nur zum Ansehen: Klicks in einer Seite gelten nur dort. Bereiche mit Login können hier ausgeloggt erscheinen, weil Chrome Cookies in Rahmen teils sperrt.</div>
+<script src="common.js"></script>
+<script src="compare.js"></script>
+</body>
+</html>

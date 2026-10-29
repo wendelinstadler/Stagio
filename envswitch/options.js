@@ -191,11 +191,101 @@ $('copyCmd').addEventListener('click', async () => {
   setTimeout(() => ($('copyCmd').textContent = 'Kopieren'), 1500);
 });
 
+/* ---------- Allgemein ---------- */
+
+async function renderGeneral() {
+  const p = await PREFS.get();
+  const { marker } = await chrome.storage.local.get('marker');
+  const box = (checked, onchange, title, sub) => {
+    const cb = h('input', { type: 'checkbox', checked });
+    cb.addEventListener('change', () => onchange(cb.checked));
+    return h('label', { className: 'check' }, cb, h('span', {}, title, h('small', {}, sub)));
+  };
+  $('general').replaceChildren(
+    box(p.health, v => PREFS.set({ health: v }).then(() => toast('Gespeichert')), 'Server-Status anzeigen', 'Grüner/roter Punkt pro Umgebung: läuft der Server?'),
+    box(p.errors, v => PREFS.set({ errors: v }).then(() => toast('Gespeichert')), 'Fehler auf der Seite sammeln', 'JS-Fehler, console.error und fehlgeschlagene Requests deiner Projektseiten im Tab „Logs“'),
+    box(marker !== false, v => chrome.storage.local.set({ marker: v }).then(() => toast('Gespeichert')), 'Umgebung auf der Seite markieren', 'Farbbalken oben und Name im Tab-Titel')
+  );
+}
+
+/* ---------- Projekte: Header-Presets, Health-Pfad ---------- */
+
+let projTimer;
+function saveProjects() {
+  clearTimeout(projTimer);
+  projTimer = setTimeout(async () => {
+    await LS.save(projects);
+    toast('Gespeichert');
+  }, 400);
+}
+
+function renderProjects() {
+  if (!projects.length) {
+    $('projects').replaceChildren(h('div', { className: 'muted' }, 'Noch kein Projekt. Lege im Popup unter „Switcher“ zuerst ein Projekt an.'));
+    return;
+  }
+  $('projects').replaceChildren(
+    h(
+      'div',
+      { style: 'display:grid;gap:10px' },
+      projects.map(p => {
+        const health = h('input', { value: p.health ?? '', className: 'mono', placeholder: '/ (Startseite) oder z. B. /actuator/health', spellcheck: false });
+        health.addEventListener('input', () => {
+          p.health = health.value.trim();
+          saveProjects();
+        });
+        return h(
+          'div',
+          { className: 'proj' },
+          h('b', {}, p.name),
+          h('label', { className: 'f' }, 'Prüf-Adresse für den Server-Status', health),
+          p.envs.map(e => envHeaders(e))
+        );
+      })
+    )
+  );
+}
+
+function envHeaders(e) {
+  const d = h('span', { className: 'edot' });
+  d.style.background = LS.color(e.name);
+  const on = h('input', { type: 'checkbox', checked: e.headersOn !== false });
+  const ta = h('textarea', { rows: 2, value: e.headers ?? '', spellcheck: false, placeholder: 'X-Debug: true\nAuthorization: Bearer {{token}}' });
+  const err = h('div', { className: 'herr' });
+  const check = () => {
+    try {
+      HDR.parse(ta.value);
+      err.textContent = '';
+      return true;
+    } catch (x) {
+      err.textContent = x.message;
+      return false;
+    }
+  };
+  ta.addEventListener('input', () => {
+    e.headers = ta.value;
+    if (check()) saveProjects();
+  });
+  on.addEventListener('change', () => {
+    e.headersOn = on.checked;
+    saveProjects();
+  });
+  check();
+  return h(
+    'div',
+    { className: 'envh' },
+    h('div', { className: 'who' }, h('b', {}, d, e.name), h('span', {}, e.origin), h('label', { className: 'check', style: 'font-size:12px;margin-top:4px' }, on, h('span', {}, 'Header aktiv'))),
+    h('div', {}, ta, err)
+  );
+}
+
 /* ---------- Start ---------- */
 
 Promise.all([VCS.get(), LS.projects()]).then(([v, p]) => {
   V = v;
   projects = p;
+  renderGeneral();
+  renderProjects();
   renderFeats();
   renderRepos();
   renderForm();

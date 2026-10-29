@@ -72,9 +72,9 @@
   [hidden] { display:none !important; }
   .bar { position:sticky; top:-12px; z-index:2; display:flex; align-items:center; gap:10px; margin:-12px -12px 0; padding:8px 12px; border-bottom:1px solid var(--line); background:var(--bg); }
   .brand { display:flex; align-items:center; gap:6px; font-weight:700; white-space:nowrap; }
-  .brand img { width:16px; height:16px; }
-  .tabs { display:flex; gap:2px; padding:2px; border-radius:8px; background:var(--soft); margin-left:auto; }
-  .tab { display:flex; align-items:center; gap:5px; padding:4px 10px; border:0; border-radius:6px; background:none; color:var(--muted); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+  .brand img { width:20px; height:20px; }
+  .tabs { display:flex; gap:1px; padding:2px; border-radius:8px; background:var(--soft); margin-right:auto; }
+  .tab { display:flex; align-items:center; gap:4px; padding:4px 8px; border:0; border-radius:6px; background:none; color:var(--muted); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
   .tab:hover { color:var(--fg); }
   .tab[aria-selected="true"] { background:var(--bg); color:var(--fg); box-shadow:0 1px 2px rgba(0,0,0,.12); }
   .tab .n { min-width:16px; padding:0 4px; border-radius:999px; background:var(--accent); color:var(--bg); font-size:10px; line-height:16px; text-align:center; }
@@ -126,11 +126,53 @@
   .busy { color:var(--muted); font-size:12px; }
   .rerr { color:var(--bad); font-size:12px; white-space:pre-wrap; overflow-wrap:anywhere; max-height:120px; overflow:auto; }
   .rmsg { color:var(--muted); font-size:12px; white-space:pre-wrap; max-height:80px; overflow:auto; }
+  /* Server-Status */
+  .hdot { width:7px; height:7px; border-radius:50%; flex:none; background:var(--line); box-shadow:0 0 0 2px var(--bg); margin-left:4px; display:inline-block; vertical-align:middle; }
+  .env .hdot { margin-left:auto; }
+  .hdot[data-state="up"] { background:#1e8e3e; }
+  .hdot[data-state="warn"] { background:#e37400; }
+  .hdot[data-state="error"], .hdot[data-state="down"] { background:#d93025; }
+  .hdot[data-state="wait"] { animation:pulse 1s infinite alternate; }
+  @keyframes pulse { to { opacity:.35; } }
+  .envnames { display:flex; flex-wrap:wrap; gap:4px 12px; }
+  /* Header-Preset, Werkzeuge */
+  .hline { display:flex; align-items:center; gap:6px; margin-top:8px; font-size:12px; }
+  .hline .o { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  .hbadge { flex:none; padding:0 7px; border-radius:999px; background:var(--soft); color:var(--muted); font-size:11px; font-weight:600; }
+  .hbadge.on { background:color-mix(in srgb, #1e8e3e 16%, var(--bg)); color:#1e8e3e; }
+  .tools { display:flex; gap:6px; margin-top:8px; }
+  .cpanel { display:grid; gap:6px; margin-top:8px; padding:10px; border-radius:8px; background:var(--soft); }
+  .copt { display:flex; gap:8px; align-items:flex-start; font-size:12px; }
+  .copt small { display:block; color:var(--muted); font-size:11px; }
+  /* Logs */
+  #logBox { display:grid; gap:8px; }
+  .lhead { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+  .logs { display:grid; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .log { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:8px; padding:6px 8px; border-bottom:1px solid var(--line); font-size:12px; }
+  .log:last-child { border-bottom:0; }
+  .lk { padding:0 5px; border-radius:4px; font-size:10px; font-weight:700; color:#fff; background:#d93025; align-self:start; margin-top:1px; }
+  .k-console .lk { background:#e37400; } .k-net .lk { background:#5f6368; }
+  .lm { min-width:0; overflow-wrap:anywhere; }
+  .lm small { display:block; color:var(--muted); font:11px ui-monospace,Consolas,monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ln { color:var(--muted); font-weight:600; }
+  .lt { color:var(--muted); font-size:11px; white-space:nowrap; }
+  /* Aufnahme */
+  .recbtn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:7px; border:1px dashed var(--line); border-radius:8px; background:var(--bg); color:var(--fg); font:inherit; font-size:12px; cursor:pointer; }
+  .recbtn:hover { border-color:#d93025; color:#d93025; }
+  .rdot { width:9px; height:9px; border-radius:50%; background:#d93025; flex:none; }
+  .rdot.live { animation:pulse .7s infinite alternate; }
+  .recrun { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid #d93025; border-radius:8px; font-size:12px; font-weight:600; }
+  .recdone { display:grid; gap:6px; padding:10px; border-radius:8px; background:var(--soft); }
+  .rlist { display:grid; max-height:200px; overflow:auto; border:1px solid var(--line); border-radius:6px; background:var(--bg); }
+  .ritem { display:flex; align-items:center; gap:6px; padding:4px 8px; border-bottom:1px solid var(--line); font-size:12px; cursor:pointer; }
+  .ritem:last-child { border-bottom:0; }
+  .ritem code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:ui-monospace,Consolas,monospace; font-size:11px; }
+  .ritem .qm { min-width:44px; font-size:10px; }
 </style>
 </head>
 <body>
 <header class="bar">
-  <span class="brand"><img src="icons/16.png" alt="">EnvSwitch</span>
+  <span class="brand" title="EnvSwitch"><img src="icons/48.png" alt="EnvSwitch"></span>
   <nav id="tabs" class="tabs" role="tablist"></nav>
   <button class="icon" id="api" title="API-Tester im grossen Fenster öffnen">↗</button>
 </header>
@@ -160,6 +202,7 @@
 </div>
 
 <div class="view" data-view="api" hidden>
+<section id="recBox"></section>
 <section id="quick"></section>
 <form id="addForm" class="addf" hidden>
   <h1>Request hinzufügen</h1>
@@ -184,6 +227,10 @@
 <div class="view" data-view="git" hidden>
 <section id="vcsBox"></section>
 <button class="link plain" id="vcsSettings" style="justify-self:center;margin:0">⚙ Branch Manager einrichten</button>
+</div>
+
+<div class="view" data-view="logs" hidden>
+<section id="logBox"></section>
 </div>
 
 <footer class="muted" style="text-align:center"><a href="https://github.com/wendelinstadler/envswitch" target="_blank" rel="noopener noreferrer">EnvSwitch auf GitHub</a></footer>

@@ -2,7 +2,7 @@
 
 Chrome-Extension für Projekte mit mehreren Umgebungen (Lokal, Test, Prod):
 
-- **Popup** mit Tabs oben (Switcher, API, Branches; weitere Bereiche lassen sich in `TABS` in `popup.js` ergänzen).
+- **Popup** mit Tabs oben (Switcher, API, Branches, Logs; weitere Bereiche lassen sich in `TABS` in `popup.js` ergänzen).
 - **Switcher:** zwischen Umgebungen wechseln, Seiten wie Backoffice mit einem Klick öffnen, Umgebung auf der Seite markieren (Farbbalken und Tab-Titel). Alt+Shift+E / Alt+Shift+1–3.
 - **API-Tester:** Requests senden und Antworten im Swagger-Stil ansehen, mit denselben Projekten und Umgebungen. Öffnen über „API-Tester öffnen“ oder „API“ im Popup.
 
@@ -32,3 +32,12 @@ Alle Daten bleiben in `chrome.storage.local` auf diesem Computer.
 Im Popup unter **Branches**: aktuellen Branch sehen, wechseln (mit Suche), neuen Branch aus Ticket-Nummer erstellen (Vorlage z. B. `feature/{ticket}-{titel}`, auf einer offenen Jira-Seite wird das Ticket übernommen), Status, Pull/Push/Fetch und die letzten Commits. Auf lokalen Seiten steht der Branch neben dem Umgebungsnamen.
 
 Einrichten unter **Einstellungen** (Rechtsklick aufs Icon → Optionen, oder im Branches-Tab unten). Weil Chrome selbst keine Befehle ausführen darf, braucht es einmalig das Hilfsprogramm aus dem Ordner [`helper`](../helper).
+
+## Werkzeuge für Entwickler
+
+- **Header-Presets pro Umgebung:** z. B. `X-Debug: true` oder `Authorization: Bearer {{token}}` werden bei jedem Aufruf dieser Umgebung mitgeschickt (Seiten, Bilder, API). Einstellen unter Einstellungen → Projekte, im Popup mit einem Klick an/aus.
+- **Server-Status:** grüner/oranger/roter Punkt pro Umgebung mit Antwortzeit. Prüf-Adresse pro Projekt einstellbar (z. B. `/actuator/health`).
+- **Logs:** JS-Fehler, `console.error` und fehlgeschlagene Requests deiner Projektseiten. Die Anzahl steht auf dem Icon, Details im Tab „Logs“ (kopierbar für Bug-Reports).
+- **Requests aufnehmen:** im Tab „API“ starten, durch die Seite klicken, stoppen, Auswahl in den API-Tester übernehmen.
+- **Umgebungen vergleichen:** gleicher Request an zwei Umgebungen mit Feld-für-Feld-Unterschieden (API-Tester), oder dieselbe Seite nebeneinander (Popup → Vergleichen).
+- **Daten löschen:** Cache, Storage, Service Worker und optional Cookies nur genau dieser Adresse. Andere Seiten und Logins bleiben unberührt.

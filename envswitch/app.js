@@ -48,9 +48,11 @@ function save() {
   saveTimer = setTimeout(saveNow, 250);
 }
 let lastSaved = '';
+// Chrome speichert Objekte mit sortierten Schlüsseln: zum Vergleichen darum sortiert serialisieren
+const stable = v => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(n => [n, x[n]])) : x));
 function saveNow() {
   clearTimeout(saveTimer);
-  lastSaved = JSON.stringify(S.cols);
+  lastSaved = stable(S.cols);
   return chrome.storage.local.set({ apiCols: S.cols, apiState: { project: S.project, envSel: S.envSel }, apiCookies: S.cookies });
 }
 addEventListener('beforeunload', () => saveNow());
@@ -118,8 +120,40 @@ function renderTop() {
   const cur = activeEnv();
   put(
     $('envbar'),
-    p?.envs.map((e, i) => h('button', { className: 'pill', 'aria-pressed': String(e === cur), title: e.origin, onclick: () => setEnv(i) }, dot(e.name), e.name))
+    p?.envs.map((e, i) => h('button', { className: 'pill', 'aria-pressed': String(e === cur), title: e.origin, onclick: () => setEnv(i) }, dot(e.name), e.name, hdot(e)))
   );
+  checkHealth(p);
+}
+
+/* ---------- 2. Server-Status ---------- */
+
+const HCACHE = new Map(); // origin -> { r, at }
+let healthOn = true;
+PREFS.get().then(p => {
+  healthOn = p.health;
+  if (!healthOn) document.querySelectorAll('.hdot').forEach(d => d.remove());
+});
+function hdot(e) {
+  const d = h('span', { className: 'hdot', 'data-h': e.origin });
+  const c = HCACHE.get(e.origin);
+  d.dataset.state = c?.r?.state ?? 'wait';
+  d.title = HEALTH.title(c?.r);
+  return d;
+}
+function checkHealth(p) {
+  if (!p || !healthOn) return;
+  for (const e of p.envs) {
+    const c = HCACHE.get(e.origin);
+    if (c && Date.now() - c.at < 60000) continue;
+    HCACHE.set(e.origin, { r: c?.r, at: Date.now() });
+    HEALTH.check(e, p).then(r => {
+      HCACHE.set(e.origin, { r, at: Date.now() });
+      document.querySelectorAll(`.hdot[data-h="${CSS.escape(e.origin)}"]`).forEach(d => {
+        d.dataset.state = r.state;
+        d.title = HEALTH.title(r);
+      });
+    });
+  }
 }
 
 $('projectSel').addEventListener('change', () => setProject($('projectSel').value));
@@ -542,6 +576,7 @@ function opBody(c, r, block) {
     toast(`Nach „${to.name}“ verschoben.`);
   });
 
+  const cmpBox = h('div', { className: 'cmp', hidden: true });
   const actions = h(
     'div',
     { className: 'actions' },
@@ -560,6 +595,19 @@ function opBody(c, r, block) {
       },
       'Als cURL kopieren'
     ),
+    (project()?.envs.length ?? 0) > 1 &&
+      h(
+        'button',
+        {
+          className: 'link',
+          title: 'Diesen Request an zwei Umgebungen senden und die Antworten vergleichen',
+          onclick: () => {
+            cmpBox.hidden = !cmpBox.hidden;
+            if (!cmpBox.hidden && !cmpBox.childElementCount) cmpBox.append(...compareUi(r));
+          },
+        },
+        '⇆ Umgebungen vergleichen'
+      ),
     h(
       'button',
       {
@@ -601,6 +649,7 @@ function opBody(c, r, block) {
     tabsBar,
     pane,
     actions,
+    cmpBox,
     resBox
   );
   body.addEventListener('keydown', ev => {
@@ -1257,7 +1306,7 @@ function renderAll() {
 // Änderungen aus dem Popup (Projekte) und vom Icon (aktuelle Seite, gewünschtes Projekt) übernehmen.
 chrome.storage.onChanged.addListener((ch, area) => {
   if (area !== 'local') return;
-  if (ch.projects && JSON.stringify(ch.projects.newValue ?? []) !== JSON.stringify(S.projects)) {
+  if (ch.projects && stable(ch.projects.newValue ?? []) !== stable(S.projects)) {
     const typing = document.activeElement?.closest('aside');
     S.projects = ch.projects.newValue ?? [];
     if (!project()) S.project = S.projects[0]?.id ?? null;
@@ -1265,7 +1314,7 @@ chrome.storage.onChanged.addListener((ch, area) => {
     if (!typing) renderSide();
     renderMain();
   }
-  if (ch.apiCols && JSON.stringify(ch.apiCols.newValue ?? []) !== lastSaved) {
+  if (ch.apiCols && stable(ch.apiCols.newValue ?? []) !== lastSaved) {
     clearTimeout(saveTimer);
     // Im Popup hinzugefügt: übernehmen (eigene Speicherungen lösen hier nichts aus)
     S.cols = ch.apiCols.newValue ?? [];
@@ -1323,3 +1372,137 @@ Promise.all([LS.projects(), chrome.storage.local.get(['apiCols', 'apiState', 'ap
   renderAll();
   if (d.apiOpen) afterOpen(d.apiOpen);
 });
+
+/* ---------- 5. Umgebungen vergleichen (gleicher Request, zwei Umgebungen) ---------- */
+
+function compareUi(r) {
+  const p = project();
+  const a = activeEnv();
+  const others = p.envs.filter(e => e !== a);
+  const selA = h('select', {}, p.envs.map((e, i) => h('option', { value: String(i), selected: e === a }, e.name)));
+  const selB = h('select', {}, p.envs.map((e, i) => h('option', { value: String(i), selected: e === others[0] }, e.name)));
+  const ignore = h('input', { value: r.cmpIgnore ?? '', placeholder: 'Felder ignorieren, z. B. timestamp, id', spellcheck: false });
+  ignore.addEventListener('input', () => {
+    r.cmpIgnore = ignore.value;
+    save();
+  });
+  const out = h('div', { className: 'cmp-out' });
+  const go = h('button', { className: 'btn' }, 'Beide senden');
+  go.addEventListener('click', async () => {
+    const ea = p.envs[Number(selA.value)];
+    const eb = p.envs[Number(selB.value)];
+    let qa, qb;
+    try {
+      qa = buildRequest(r, ea);
+      qb = buildRequest(r, eb);
+    } catch (err) {
+      return put(out, h('div', { className: 'res-err' }, err.message));
+    }
+    // Zugriff im Klick anfragen
+    const pats = [...new Set([qa.url, qb.url].map(u => LS.pattern(u.origin)))];
+    for (const pt of pats) if (!S.apiOrigins.includes(pt)) S.apiOrigins.push(pt);
+    chrome.storage.local.set({ apiOrigins: S.apiOrigins });
+    const ok = await chrome.permissions.request({ origins: pats }).catch(() => false);
+    if (!ok) return put(out, h('div', { className: 'res-err' }, 'Ohne Zugriff auf beide Adressen geht der Vergleich nicht.'));
+    if ((LS.isProd(ea.name) || LS.isProd(eb.name)) && !NO_BODY.includes(r.method) && !confirm(`${r.method} wirklich auch an Live senden?`)) return;
+    put(out, h('div', { className: 'muted' }, 'Sende an beide …'));
+    const one = async q => {
+      const t0 = performance.now();
+      try {
+        const res = await fetch(q.url, q.init);
+        const text = await res.text();
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch {}
+        return { status: res.status, ms: performance.now() - t0, size: text.length, text, json };
+      } catch (err) {
+        return { error: err.message };
+      }
+    };
+    const [ra, rb] = await Promise.all([one(qa), one(qb)]);
+    showCompare(out, ea, eb, ra, rb, ignore.value.split(',').map(x => x.trim()).filter(Boolean));
+  });
+  return [h('div', { className: 'cmp-bar' }, selA, h('span', { className: 'muted' }, '⇆'), selB, ignore, go), out];
+}
+
+// Unterschiede zweier JSON-Werte als Liste von Pfaden
+function jsonDiff(a, b, ignore, path = '', out = []) {
+  if (out.length >= 300) return out;
+  const ta = Array.isArray(a) ? 'array' : a === null ? 'null' : typeof a;
+  const tb = Array.isArray(b) ? 'array' : b === null ? 'null' : typeof b;
+  if (ta !== tb) {
+    out.push({ path: path || '(Wurzel)', kind: 'changed', a, b });
+    return out;
+  }
+  if (ta === 'object' || ta === 'array') {
+    const keys = ta === 'array' ? [...Array(Math.max(a.length, b.length)).keys()] : [...new Set([...Object.keys(a), ...Object.keys(b)])];
+    for (const k of keys) {
+      if (ignore.includes(String(k))) continue;
+      const p = ta === 'array' ? `${path}[${k}]` : path ? `${path}.${k}` : String(k);
+      const inA = ta === 'array' ? k < a.length : Object.hasOwn(a, k);
+      const inB = ta === 'array' ? k < b.length : Object.hasOwn(b, k);
+      if (!inB) out.push({ path: p, kind: 'removed', a: a[k] });
+      else if (!inA) out.push({ path: p, kind: 'added', b: b[k] });
+      else jsonDiff(a[k], b[k], ignore, p, out);
+      if (out.length >= 300) break;
+    }
+    return out;
+  }
+  if (a !== b) out.push({ path: path || '(Wurzel)', kind: 'changed', a, b });
+  return out;
+}
+
+// Zeilen-Unterschiede für Text (einfaches LCS, für grosse Antworten gekürzt)
+function lineDiff(x, y) {
+  const A = x.split('\n').slice(0, 1500);
+  const B = y.split('\n').slice(0, 1500);
+  const n = A.length, m = B.length;
+  const L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = [];
+  let i = 0, j = 0;
+  while ((i < n || j < m) && out.length < 300) {
+    if (i < n && j < m && A[i] === B[j]) (i++, j++);
+    else if (j < m && (i === n || L[i][j + 1] >= L[i + 1][j])) out.push({ kind: 'added', line: j + 1, text: B[j++] });
+    else out.push({ kind: 'removed', line: i + 1, text: A[i++] });
+  }
+  return out;
+}
+
+function showCompare(box, ea, eb, ra, rb, ignore) {
+  const sideHead = (e, r) =>
+    h(
+      'div',
+      { className: 'cmp-side' },
+      dot(e.name),
+      h('b', {}, e.name),
+      r.error ? h('span', { className: 'bad' }, r.error) : [h('span', { className: `status ${r.status >= 500 ? 's5' : r.status >= 400 ? 's4' : r.status >= 300 ? 's3' : 's2'}` }, String(r.status)), h('span', { className: 'muted' }, `${fmtMs(r.ms)} · ${fmtSize(r.size)}`)]
+    );
+  const fmt = v => (v === undefined ? '—' : typeof v === 'string' ? JSON.stringify(v) : JSON.stringify(v)?.slice(0, 300));
+  let body;
+  if (ra.error || rb.error) body = h('div', { className: 'muted' }, 'Mindestens eine Umgebung hat nicht geantwortet.');
+  else if (ra.json !== undefined && rb.json !== undefined) {
+    const d = jsonDiff(ra.json, rb.json, ignore);
+    body = !d.length
+      ? h('div', { className: 'cmp-same' }, ra.status === rb.status ? '✓ Antworten sind identisch.' : `✓ Inhalt identisch, aber Status unterschiedlich (${ra.status} / ${rb.status}).`)
+      : [
+          h('div', { className: 'muted' }, `${d.length >= 300 ? '300+' : d.length} Unterschiede${ignore.length ? ` (ignoriert: ${ignore.join(', ')})` : ''}`),
+          h(
+            'table',
+            { className: 'cmp-table' },
+            h('thead', {}, h('tr', {}, h('th', {}, 'Feld'), h('th', {}, ea.name), h('th', {}, eb.name))),
+            h('tbody', {}, d.map(x => h('tr', { className: `d-${x.kind}` }, h('td', {}, x.path), h('td', {}, x.kind === 'added' ? '—' : fmt(x.a)), h('td', {}, x.kind === 'removed' ? '—' : fmt(x.b)))))
+          ),
+        ];
+  } else {
+    const d = lineDiff(ra.text, rb.text);
+    body = !d.length
+      ? h('div', { className: 'cmp-same' }, '✓ Antworten sind identisch.')
+      : [
+          h('div', { className: 'muted' }, `${d.length >= 300 ? '300+' : d.length} geänderte Zeilen (− nur ${ea.name}, + nur ${eb.name})`),
+          h('pre', { className: 'out cmp-lines' }, d.map(x => h('div', { className: `l-${x.kind}` }, `${x.kind === 'added' ? '+' : '−'} ${String(x.line).padStart(4)}  ${x.text}`))),
+        ];
+  }
+  put(box, h('div', { className: 'cmp-heads' }, sideHead(ea, ra), sideHead(eb, rb)), body);
+}

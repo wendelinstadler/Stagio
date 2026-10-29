@@ -254,6 +254,9 @@ globalThis.AP = {
       }
     }
 
+    // Header-Presets der Umgebung ergänzen (eigene Header des Requests haben Vorrang)
+    for (const x of HDR.of(env)) if (!/^cookie$/i.test(x.k) && !headers.has(x.k)) headers.set(x.k, x.v);
+
     const init = { method: r.method, headers, credentials: cookies ? 'include' : 'omit', redirect: 'follow', cache: 'no-store' };
     const b = r.body;
     if (!['GET', 'HEAD'].includes(r.method) && b && b.mode !== 'none' && b.text.trim()) {
@@ -272,7 +275,8 @@ globalThis.AP = {
   keepVars(oldEnvs, newEnvs) {
     for (const e of newEnvs) {
       const old = (oldEnvs ?? []).find(o => o.name.toLowerCase() === e.name.toLowerCase()) ?? (oldEnvs ?? []).find(o => o.origin === e.origin);
-      if (old?.vars) e.vars = old.vars;
+      // Alles ausser Name und Adresse übernehmen (Variablen, Header-Presets …)
+      if (old) for (const [k, v] of Object.entries(old)) if (k !== 'name' && k !== 'origin' && !(k in e)) e[k] = v;
     }
     return newEnvs;
   },
@@ -578,5 +582,71 @@ globalThis.VCS = {
     if (s < 86400) return `vor ${Math.floor(s / 3600)} Std.`;
     if (s < 86400 * 30) return `vor ${Math.floor(s / 86400)} T.`;
     return new Date(ts * 1000).toLocaleDateString('de-CH');
+  },
+};
+
+// ---------- Allgemeine Einstellungen ----------
+globalThis.PREFS = {
+  DEFAULTS: { health: true, errors: true },
+  async get() {
+    const { prefs } = await chrome.storage.local.get('prefs');
+    return { ...this.DEFAULTS, ...prefs };
+  },
+  async set(part) {
+    const cur = await this.get();
+    return chrome.storage.local.set({ prefs: { ...cur, ...part } });
+  },
+};
+
+// ---------- Header-Presets pro Umgebung ----------
+// Zeilen "Name: Wert" (oder "Name = Wert"). Werte dürfen {{variablen}} der Umgebung enthalten.
+globalThis.HDR = {
+  parse(text) {
+    const out = [];
+    for (const raw of String(text ?? '').split('\n')) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      const m = /^([!#$%&'*+.^_`|~0-9A-Za-z-]+)\s*[:=]\s*(.*)$/.exec(line);
+      if (!m) throw new Error(`Zeile nicht verstanden: «${line}». Beispiel: X-Debug: true`);
+      out.push({ k: m[1], v: m[2] });
+    }
+    return out;
+  },
+  // Gültige Header einer Umgebung, mit eingesetzten Variablen. Fehlerhafte Zeilen werden übersprungen.
+  of(env) {
+    if (!env?.headers || env.headersOn === false) return [];
+    try {
+      return this.parse(env.headers).map(x => ({ k: x.k, v: AP.fill(x.v, env) }));
+    } catch {
+      return [];
+    }
+  },
+};
+
+// ---------- Server-Status ----------
+// Prüft, ob eine Umgebung antwortet. Ohne Zugriffsrecht reicht eine "no-cors"-Anfrage: kommt etwas zurück, läuft der Server.
+globalThis.HEALTH = {
+  async check(env, project, timeout = 6000) {
+    const url = env.origin + '/' + String(project?.health || '').replace(/^\/+/, '');
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    const t0 = performance.now();
+    try {
+      const granted = await chrome.permissions.contains({ origins: [LS.pattern(env.origin)] }).catch(() => false);
+      const res = await fetch(url, { method: 'GET', cache: 'no-store', credentials: 'omit', redirect: 'follow', signal: ctrl.signal, ...(granted ? {} : { mode: 'no-cors' }) });
+      const ms = Math.round(performance.now() - t0);
+      res.body?.cancel().catch(() => {});
+      if (res.type === 'opaque') return { state: 'up', ms, status: null, url };
+      return { state: res.status >= 500 ? 'error' : res.status >= 400 ? 'warn' : 'up', ms, status: res.status, url };
+    } catch (err) {
+      return { state: 'down', ms: null, status: null, url, error: err.name === 'AbortError' ? 'Zeitüberschreitung' : 'nicht erreichbar' };
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+  title(r) {
+    if (!r) return 'Prüfe …';
+    if (r.state === 'down') return `Antwortet nicht (${r.error}) · ${r.url}`;
+    return `${r.status ? `Status ${r.status}` : 'Erreichbar'} · ${r.ms} ms · ${r.url}`;
   },
 };

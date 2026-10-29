@@ -21,6 +21,33 @@ const dot = name => {
   return d;
 };
 
+// Server-Status-Punkt (wird nach der Prüfung eingefärbt)
+const HSTATE = new Map(); // origin -> Ergebnis
+let prefs = PREFS.DEFAULTS;
+const hdot = (e, p) => {
+  if (!prefs.health) return null;
+  const d = h('span', { className: 'hdot', 'data-h': e.origin });
+  paintH(d, HSTATE.get(e.origin));
+  return d;
+};
+function paintH(d, r) {
+  d.dataset.state = r?.state ?? 'wait';
+  d.title = HEALTH.title(r);
+}
+function checkAll(projects) {
+  if (!prefs.health) return;
+  const seen = new Set();
+  for (const p of projects)
+    for (const e of p.envs) {
+      if (seen.has(e.origin) || HSTATE.has(e.origin)) continue;
+      seen.add(e.origin);
+      HEALTH.check(e, p).then(r => {
+        HSTATE.set(e.origin, r);
+        document.querySelectorAll(`[data-h="${CSS.escape(e.origin)}"]`).forEach(d => paintH(d, r));
+      });
+    }
+}
+
 // Live-Schutz: Der erste Klick fragt nach, erst der zweite führt aus.
 function guard(live, question, action) {
   return ev => {
@@ -92,6 +119,7 @@ const TABS = [
   { id: 'switch', label: 'Switcher' },
   { id: 'api', label: 'API' },
   { id: 'git', label: 'Branches' },
+  { id: 'logs', label: 'Logs' },
 ];
 let view = 'switch';
 const tabCount = {};
@@ -117,6 +145,7 @@ function showView(id) {
   renderTabs();
   chrome.storage.local.set({ popupTab: id });
   if (id === 'git' && ready) renderVcs();
+  if (id === 'logs' && ready) renderLogs();
 }
 let ready = false;
 
@@ -189,7 +218,7 @@ function projectCard(p, notAllowed) {
           return h(
             'div',
             { className: 'pages' },
-            h('span', { className: 'who' }, dot(e.name), e.name),
+            h('span', { className: 'who' }, dot(e.name), e.name, hdot(e, p)),
             pages.map(pg => {
               const url = LS.pageUrl(e, pg);
               return url && h('button', { className: 'chip', title: url, onclick: guard(live, 'Sicher?', () => openGroups([{ urls: [url] }])) }, pg.name);
@@ -198,7 +227,7 @@ function projectCard(p, notAllowed) {
               h('button', { className: 'chip all', title: `Alle ${urlsOf(e).length} Seiten in ${e.name} öffnen`, onclick: guard(live, 'Sicher?', () => openGroups([group(e)])) }, 'Alle')
           );
         })
-      : h('div', { className: 'muted' }, p.envs.map(e => e.name).join(' · ')),
+      : h('div', { className: 'muted envnames' }, p.envs.map(e => h('span', {}, e.name, hdot(e, p)))),
     notAllowed.length > 0 &&
       h(
         'div',
@@ -231,7 +260,8 @@ async function render() {
             },
             dot(e.name),
             h('b', {}, e.name),
-            h('span', { className: 'o' }, e.origin)
+            h('span', { className: 'o' }, e.origin),
+            hdot(e, m.project)
           )
         )
       ),
@@ -246,6 +276,9 @@ async function render() {
           },
           'Diese Seite in allen anderen Umgebungen öffnen'
         ),
+      headerLine(m),
+      toolsRow(m),
+      h('div', { id: 'toolPanel' }),
     ].filter(Boolean));
   } else {
     $('now').replaceChildren(
@@ -262,6 +295,8 @@ async function render() {
 
   const gaps = $('marker').checked ? await Promise.all(projects.map(p => missing(p.envs))) : projects.map(() => []);
   $('list').replaceChildren(...projects.map((p, i) => projectCard(p, gaps[i])));
+  checkAll(projects);
+  refreshLogsCount();
 }
 
 // Fügt die Adresse des aktuellen Tabs als neue Zeile ein. Den Namen wählt man selbst.
@@ -311,7 +346,9 @@ $('marker').addEventListener('change', ev => {
   asked?.then(render);
 });
 
-Promise.all([chrome.tabs.query({ active: true, currentWindow: true }), chrome.storage.local.get(['marker', 'popupTab'])]).then(([[t], s]) => {
+const forced = Number(new URLSearchParams(location.search).get('tab')) || null;
+Promise.all([forced ? chrome.tabs.get(forced).then(t => [t]) : chrome.tabs.query({ active: true, currentWindow: true }), chrome.storage.local.get(['marker', 'popupTab']), PREFS.get()]).then(([[t], s, pr]) => {
+  prefs = pr;
   showView(s.popupTab ?? 'switch');
   tab = t ?? null;
   $('addCurrent').hidden = !tab?.url?.startsWith('http');
@@ -319,6 +356,8 @@ Promise.all([chrome.tabs.query({ active: true, currentWindow: true }), chrome.st
   render();
   ready = true;
   if (view === 'git') renderVcs();
+  if (view === 'logs') renderLogs();
+  renderRec();
 });
 
 // ---------- Schnell-Requests (im API-Tester mit ★ markiert) ----------
@@ -806,4 +845,283 @@ function cardBody(p, r, st, draw) {
   if (st.err) parts.push(h('div', { className: 'rerr' }, st.err));
   if (st.msg) parts.push(h('div', { className: 'rmsg' }, st.msg));
   return parts;
+}
+
+// ---------- 1. Header-Preset der aktuellen Umgebung an/aus ----------
+
+function headerLine(m) {
+  const e = m.env;
+  let list = [];
+  try {
+    list = HDR.parse(e.headers);
+  } catch {}
+  if (!list.length) return null;
+  const on = e.headersOn !== false;
+  return h(
+    'div',
+    { className: 'hline' },
+    h('span', { className: 'hbadge' + (on ? ' on' : '') }, on ? 'Header aktiv' : 'Header aus'),
+    h('span', { className: 'o', title: list.map(x => `${x.k}: ${x.v}`).join('\n') }, list.map(x => x.k).join(', ')),
+    h(
+      'button',
+      {
+        className: 'link open',
+        style: 'padding:0;margin-left:auto',
+        onclick: async () => {
+          const projects = await LS.projects();
+          const env = projects.find(p => p.id === m.project.id)?.envs[m.index];
+          if (!env) return;
+          env.headersOn = !on;
+          await LS.save(projects);
+          // Kurz warten, bis die Regeln neu gesetzt sind, dann neu laden
+          setTimeout(() => chrome.tabs.reload(tab.id), 300);
+          render();
+        },
+      },
+      on ? 'Aus + neu laden' : 'An + neu laden'
+    )
+  );
+}
+
+// ---------- 5. und 6. Werkzeuge für die aktuelle Seite ----------
+
+function toolsRow(m) {
+  const panel = () => $('toolPanel');
+  return h(
+    'div',
+    { className: 'tools' },
+    m.project.envs.length > 1 &&
+      h(
+        'button',
+        {
+          className: 'mini',
+          title: 'Diese Seite in zwei Umgebungen nebeneinander ansehen',
+          onclick: () => {
+            const other = m.project.envs.find((_, i) => i !== m.index);
+            const u = new URL(tab.url);
+            const q = new URLSearchParams({ p: m.project.id, a: m.env.origin, b: other.origin, path: u.pathname + u.search });
+            chrome.tabs.create({ url: chrome.runtime.getURL('compare.html?' + q), index: tab.index + 1 });
+            window.close();
+          },
+        },
+        '⇆ Vergleichen'
+      ),
+    h('button', { className: 'mini', onclick: () => clearPanel(m, panel()) }, '🧹 Daten löschen')
+  );
+}
+
+function clearPanel(m, box) {
+  if (box.childElementCount) return put(box);
+  const live = LS.isProd(m.env.name);
+  const opt = (k, label, checked, hint) => {
+    const cb = h('input', { type: 'checkbox', checked, style: 'width:auto' });
+    cb.dataset.k = k;
+    return h('label', { className: 'copt', title: hint ?? '' }, cb, h('span', {}, label, hint && h('small', {}, hint)));
+  };
+  const status = h('div', { className: 'muted' });
+  const go = async () => {
+    const opts = { reload: true };
+    box.querySelectorAll('input[data-k]').forEach(cb => (opts[cb.dataset.k] = cb.checked));
+    status.textContent = 'Lösche …';
+    const r = await chrome.runtime.sendMessage({ type: 'clear-data', origin: m.env.origin, opts, tabId: tab.id });
+    status.textContent = r?.ok ? `Gelöscht: ${r.done.join(', ') || 'nichts'}. Seite wird neu geladen.` : r?.error ?? 'Fehler';
+  };
+  put(
+    box,
+    h(
+      'div',
+      { className: 'cpanel' },
+      h('b', {}, `Daten von ${new URL(m.env.origin).host} löschen`),
+      h('div', { className: 'muted' }, 'Nur diese Adresse. Andere Seiten und Logins bleiben unberührt.'),
+      opt('cache', 'Cache', true),
+      opt('storage', 'Local/Session Storage und IndexedDB', true),
+      opt('sw', 'Service Worker', true),
+      opt('cookies', 'Cookies (meldet dich hier ab)', false, LS.isLocal(new URL(m.env.origin).hostname) ? 'Gilt für alle Ports dieses Hosts. Cookies der ganzen Domain bleiben.' : 'Nur Cookies genau dieses Hosts. Cookies der ganzen Domain bleiben.'),
+      h('div', { className: 'row' }, h('button', { className: 'btn', onclick: guard(live, `Auf ${m.env.name}? Nochmals klicken.`, go) }, 'Löschen und neu laden')),
+      status
+    )
+  );
+}
+
+// ---------- 3. Logs-Tab ----------
+
+let logFilter = 'all';
+async function refreshLogsCount() {
+  if (!tab?.id) return;
+  const r = await chrome.runtime.sendMessage({ type: 'logs-get', tabId: tab.id }).catch(() => null);
+  tabCount.logs = (r?.logs ?? []).reduce((n, x) => n + (x.n ?? 1), 0);
+  renderTabs();
+}
+
+async function renderLogs() {
+  const box = $('logBox');
+  if (!prefs.errors) {
+    put(box, h('div', { className: 'empty muted' }, 'Fehler sammeln ist ausgeschaltet.', h('br'), h('button', { className: 'link open', style: 'padding:0', onclick: () => chrome.runtime.openOptionsPage() }, 'In den Einstellungen einschalten')));
+    return;
+  }
+  const projects = await LS.projects();
+  const m = tab?.url ? LS.match(projects, tab.url) : null;
+  if (!m) {
+    put(box, h('div', { className: 'empty muted' }, 'Fehler werden auf den Seiten deiner Projekte gesammelt.', h('br'), 'Diese Seite gehört zu keinem Projekt.'));
+    return;
+  }
+  const r = await chrome.runtime.sendMessage({ type: 'logs-get', tabId: tab.id });
+  const logs = r?.logs ?? [];
+  tabCount.logs = logs.reduce((n, x) => n + (x.n ?? 1), 0);
+  renderTabs();
+  const KINDS = { js: 'JS', console: 'Konsole', net: 'Netz' };
+  const shown = logs.filter(x => logFilter === 'all' || x.kind === logFilter).slice().reverse();
+  const asText = () => logs.map(x => `[${new Date(x.t).toLocaleTimeString('de-CH')}] ${KINDS[x.kind] ?? x.kind}: ${x.msg}${x.src ? `\n    ${x.src}` : ''}${x.n > 1 ? ` (${x.n}×)` : ''}`).join('\n');
+  const copy = h('button', { className: 'link', style: 'padding:0' }, 'Kopieren');
+  copy.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(`${tab.url}\n\n${asText()}`);
+    copy.textContent = 'Kopiert';
+  });
+  put(
+    box,
+    h(
+      'div',
+      { className: 'lhead' },
+      ['all', 'js', 'console', 'net'].map(k => {
+        const n = k === 'all' ? logs.length : logs.filter(x => x.kind === k).length;
+        return h('button', { className: 'mini' + (logFilter === k ? ' on' : ''), onclick: () => ((logFilter = k), renderLogs()) }, `${k === 'all' ? 'Alle' : KINDS[k]} ${n}`);
+      }),
+      h('span', { style: 'flex:1' }),
+      logs.length > 0 && copy,
+      logs.length > 0 &&
+        h(
+          'button',
+          {
+            className: 'link',
+            onclick: async () => {
+              await chrome.runtime.sendMessage({ type: 'logs-clear', tabId: tab.id });
+              renderLogs();
+            },
+          },
+          'Leeren'
+        )
+    ),
+    !shown.length
+      ? h('div', { className: 'empty muted' }, logs.length ? 'Keine Einträge in diesem Filter.' : 'Keine Fehler auf dieser Seite. 🎉')
+      : h(
+          'div',
+          { className: 'logs' },
+          shown.map(x =>
+            h(
+              'div',
+              { className: `log k-${x.kind}` },
+              h('span', { className: 'lk' }, KINDS[x.kind] ?? x.kind),
+              h('div', { className: 'lm' }, h('div', {}, x.msg, x.n > 1 && h('span', { className: 'ln' }, ` ${x.n}×`)), x.src && h('small', { title: x.src }, x.src)),
+              h('span', { className: 'lt' }, new Date(x.t).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+            )
+          )
+        )
+  );
+}
+
+// ---------- 4. Requests aufnehmen ----------
+
+let recProjects = [];
+async function renderRec() {
+  const box = $('recBox');
+  if (!tab?.id || !/^https?:/.test(tab.url ?? '')) return put(box);
+  const r = (await chrome.runtime.sendMessage({ type: 'rec-get', tabId: tab.id }).catch(() => null))?.rec;
+  if (!r) {
+    put(
+      box,
+      h(
+        'button',
+        {
+          className: 'recbtn',
+          title: 'Zeichnet alle API-Aufrufe (Fetch/XHR) dieses Tabs auf, bis du stoppst',
+          onclick: async () => {
+            const origin = new URL(tab.url).origin;
+            // Zugriff im Klick anfragen
+            const ok = await chrome.permissions.request({ origins: [LS.pattern(origin)] }).catch(() => false);
+            if (!ok) return;
+            const { apiOrigins = [] } = await chrome.storage.local.get('apiOrigins');
+            if (!apiOrigins.includes(LS.pattern(origin))) await chrome.storage.local.set({ apiOrigins: [...apiOrigins, LS.pattern(origin)] });
+            await chrome.runtime.sendMessage({ type: 'rec-start', tabId: tab.id, origin });
+            renderRec();
+          },
+        },
+        h('span', { className: 'rdot' }),
+        'Requests dieser Seite aufnehmen'
+      )
+    );
+    return;
+  }
+  const uniq = [];
+  const projects = (recProjects = await LS.projects());
+  const m = LS.match(projects, tab.url);
+  const target = m?.project ?? projects[0];
+  for (const it of r.items) {
+    const { path } = AP.fromUrl(it.url, target);
+    const key = `${it.method} ${path}`;
+    const u = uniq.find(x => x.key === key);
+    if (u) u.n++;
+    else uniq.push({ key, method: it.method, path, status: it.status, n: 1 });
+  }
+  if (r.on) {
+    put(
+      box,
+      h(
+        'div',
+        { className: 'recrun' },
+        h('span', { className: 'rdot live' }),
+        h('span', { style: 'flex:1' }, `Aufnahme läuft · ${uniq.length} ${uniq.length === 1 ? 'Request' : 'Requests'}`),
+        h('button', { className: 'link', onclick: () => renderRec() }, '⟳'),
+        h('button', { className: 'btn', onclick: async () => (await chrome.runtime.sendMessage({ type: 'rec-stop', tabId: tab.id }), renderRec()) }, 'Stopp')
+      ),
+      h('div', { className: 'muted' }, 'Klick dich jetzt durch die Seite. Das Popup darf zu sein, die Aufnahme läuft weiter.')
+    );
+    return;
+  }
+  // Gestoppt: Auswahl übernehmen
+  const sel = h('select', {}, projects.map(p => h('option', { value: p.id, selected: p === target }, p.name)));
+  const checks = uniq.map(u => {
+    const cb = h('input', { type: 'checkbox', checked: true, style: 'width:auto' });
+    cb.dataset.key = u.key;
+    return h(
+      'label',
+      { className: 'ritem' },
+      cb,
+      h('span', { className: `qm ${u.method}` }, u.method),
+      h('code', { title: u.path }, u.path),
+      h('span', { className: 'muted' }, [u.status && String(u.status), u.n > 1 && `${u.n}×`].filter(Boolean).join(' · '))
+    );
+  });
+  const msg = h('div', { className: 'muted' });
+  put(
+    box,
+    h(
+      'div',
+      { className: 'recdone' },
+      h('b', {}, `${uniq.length} ${uniq.length === 1 ? 'Request' : 'Requests'} aufgenommen`),
+      uniq.length ? h('div', { className: 'rlist' }, checks) : h('div', { className: 'muted' }, 'Keine API-Aufrufe erkannt.'),
+      projects.length > 1 && sel,
+      !projects.length && h('div', { className: 'bad' }, 'Lege zuerst im Switcher ein Projekt an.'),
+      h(
+        'div',
+        { className: 'row' },
+        h('button', { className: 'link', onclick: async () => (await chrome.runtime.sendMessage({ type: 'rec-discard', tabId: tab.id }), renderRec()) }, 'Verwerfen'),
+        uniq.length > 0 &&
+          projects.length > 0 &&
+          h(
+            'button',
+            {
+              className: 'btn',
+              onclick: async () => {
+                const keys = checks.map(l => l.querySelector('input')).filter(cb => cb.checked).map(cb => cb.dataset.key);
+                const res = await chrome.runtime.sendMessage({ type: 'rec-save', tabId: tab.id, projectId: projects.length > 1 ? sel.value : projects[0].id, keys });
+                if (!res?.ok) return (msg.textContent = res?.error ?? 'Fehler');
+                put(box, h('div', { className: 'muted' }, `${res.count} Requests als „${res.name}“ im API-Tester gespeichert.`, ' ', h('button', { className: 'link open', style: 'padding:0', onclick: () => openApi(projects.length > 1 ? sel.value : projects[0].id) }, 'Öffnen ↗')));
+              },
+            },
+            'In den API-Tester übernehmen'
+          )
+      ),
+      msg
+    )
+  );
 }

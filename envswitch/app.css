@@ -182,3 +182,30 @@ dialog::backdrop { background:rgba(0,0,0,.35); }
 .star { flex:none; width:26px; height:26px; padding:0; border:0; border-radius:4px; background:none; color:var(--muted); font-size:16px; line-height:1; }
 .star:hover { background:color-mix(in srgb, var(--m) 18%, transparent); color:#f5b400; }
 .star.on { color:#f5b400; }
+
+/* Server-Status */
+.hdot { width:7px; height:7px; border-radius:50%; background:var(--line); flex:none; }
+.hdot[data-state="up"] { background:#1e8e3e; }
+.hdot[data-state="warn"] { background:#e37400; }
+.hdot[data-state="error"], .hdot[data-state="down"] { background:#d93025; }
+.hdot[data-state="wait"] { animation:hpulse 1s infinite alternate; }
+@keyframes hpulse { to { opacity:.35; } }
+
+/* Vergleich */
+.cmp { display:grid; gap:8px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); }
+.cmp-bar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.cmp-bar select { width:auto; }
+.cmp-bar input { flex:1; min-width:180px; font-family:var(--mono); font-size:12px; }
+.cmp-out { display:grid; gap:8px; }
+.cmp-out:empty { display:none; }
+.cmp-heads { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.cmp-side { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:6px 8px; border-radius:6px; background:var(--soft); font-size:12px; }
+.cmp-same { padding:8px 10px; border-radius:6px; background:color-mix(in srgb, #1e8e3e 12%, var(--bg)); color:#1e8e3e; font-weight:600; }
+.cmp-table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12px; table-layout:fixed; }
+.cmp-table th { text-align:left; font-family:system-ui,sans-serif; color:var(--muted); font-weight:600; padding:4px 8px; border-bottom:1px solid var(--line); }
+.cmp-table td { padding:4px 8px; border-bottom:1px solid var(--line); vertical-align:top; overflow-wrap:anywhere; }
+.cmp-table td:first-child { font-weight:600; }
+.d-changed td:nth-child(2), .d-removed td:nth-child(2) { background:color-mix(in srgb, #d93025 10%, transparent); }
+.d-changed td:nth-child(3), .d-added td:nth-child(3) { background:color-mix(in srgb, #1e8e3e 12%, transparent); }
+.cmp-lines .l-removed { color:#f28b82; }
+.cmp-lines .l-added { color:#81c995; }

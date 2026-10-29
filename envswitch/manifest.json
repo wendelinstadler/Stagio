@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "EnvSwitch",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Wechselt zwischen lokaler, Test- und Live-Umgebung, testet APIs im Swagger-Stil und verwaltet git- und hg-Branches pro Projekt.",
   "icons": {
     "16": "icons/16.png",
@@ -13,7 +13,11 @@
     "tabGroups",
     "activeTab",
     "scripting",
-    "nativeMessaging"
+    "nativeMessaging",
+    "declarativeNetRequestWithHostAccess",
+    "webRequest",
+    "browsingData",
+    "cookies"
   ],
   "background": {
     "service_worker": "background.js"
