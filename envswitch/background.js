@@ -6,6 +6,7 @@ async function paint(tab) {
   if (!tab?.id) return;
   try {
     const m = tab.url ? LS.match(await LS.projects(), tab.url) : null;
+    if (m) refreshBranch(m);
     await chrome.action.setBadgeText({ tabId: tab.id, text: m ? m.env.name.slice(0, 4).toUpperCase() : '' });
     if (m) {
       await chrome.action.setBadgeBackgroundColor({ tabId: tab.id, color: LS.color(m.env.name) });
@@ -133,5 +134,23 @@ async function openApi(url, projectId, tab, reqId, imp) {
   } else {
     tab ??= (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
     await chrome.tabs.create({ url: app, ...(tab ? { index: tab.index + 1, windowId: tab.windowId } : {}) });
+  }
+}
+
+// ---------- Branch auf lokalen Seiten anzeigen ----------
+// Fragt beim Laden einer lokalen Projektseite den Branch beim Hilfsprogramm ab (höchstens alle 20 s pro Projekt).
+const branchAsked = {};
+async function refreshBranch(m) {
+  try {
+    if (!LS.isLocal(new URL(m.env.origin).hostname)) return;
+    const v = await VCS.get();
+    const repo = (v.repos[m.project.id] ?? []).find(r => r.path);
+    if (!v.showOnPage || !repo || Date.now() - (branchAsked[m.project.id] ?? 0) < 20000) return;
+    branchAsked[m.project.id] = Date.now();
+    const res = await VCS.call({ op: 'info', path: repo.path }, v);
+    const { vcsBranch = {} } = await chrome.storage.local.get('vcsBranch');
+    if (vcsBranch[m.project.id]?.branch !== res.branch) await chrome.storage.local.set({ vcsBranch: { ...vcsBranch, [m.project.id]: { branch: res.branch, at: Date.now() } } });
+  } catch {
+    /* Hilfsprogramm fehlt oder Repo nicht erreichbar: einfach nichts anzeigen */
   }
 }

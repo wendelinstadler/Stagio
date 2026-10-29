@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EnvSwitch Einstellungen</title>
+<link rel="icon" href="icons/48.png">
+<style>
+  :root { --bg:#fff; --fg:#1c1c1e; --muted:#6b6b70; --line:#e2e2e6; --accent:#1a73e8; --soft:#f1f3f6; --bad:#b3261e; --ok:#188038; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; --ok:#81c995; }
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  html { color-scheme: light dark; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 80px; display:grid; gap:18px; }
+  header { display:flex; align-items:center; gap:10px; }
+  header img { width:26px; height:26px; }
+  h1 { margin:0; font-size:20px; }
+  h2 { margin:0 0 2px; font-size:15px; }
+  section { border:1px solid var(--line); border-radius:10px; padding:14px 16px; display:grid; gap:10px; }
+  .muted { color:var(--muted); font-size:12px; }
+  .bad { color:var(--bad); }
+  .ok { color:var(--ok); font-weight:600; }
+  code, .mono { font-family:ui-monospace,"SF Mono",Consolas,monospace; font-size:12px; }
+  input, select { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; }
+  input:focus, select:focus { outline:2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset:-1px; border-color:var(--accent); }
+  input[type=checkbox], input[type=radio] { width:auto; margin:0; accent-color:var(--accent); }
+  .btn { padding:6px 12px; border:0; border-radius:6px; background:var(--accent); color:var(--bg); font:inherit; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .ghost { padding:5px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; cursor:pointer; white-space:nowrap; }
+  .ghost:hover { background:var(--soft); }
+  .link { border:0; background:none; color:var(--muted); font:inherit; font-size:12px; cursor:pointer; padding:0 0 0 8px; white-space:nowrap; }
+  .link:hover { color:var(--fg); }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .grow { flex:1; }
+  .check { display:flex; gap:8px; align-items:flex-start; }
+  .check span small { display:block; color:var(--muted); font-size:12px; }
+  .feats { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; }
+  .status { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; background:var(--soft); }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--muted); flex:none; }
+  .dot.on { background:#188038; } .dot.off { background:#c5221f; }
+  ol { margin:0; padding-left:20px; display:grid; gap:8px; }
+  .cmd { display:flex; gap:6px; align-items:center; padding:6px 6px 6px 10px; border-radius:6px; background:#1e1f22; color:#e8e8ea; }
+  .cmd code { flex:1; overflow-wrap:anywhere; color:#e8e8ea; }
+  .cmd button { flex:none; padding:3px 8px; border:1px solid #3a3b40; border-radius:5px; background:#2a2b2f; color:#e8e8ea; font:inherit; font-size:12px; cursor:pointer; }
+  .proj { border:1px solid var(--line); border-radius:8px; padding:10px 12px; display:grid; gap:8px; }
+  .repo { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr) auto; gap:6px; align-items:center; }
+  .repo-meta { grid-column:1 / -1; margin-top:-2px; font-size:12px; }
+  .vcs { display:inline-block; padding:0 6px; border-radius:4px; color:#fff; font-size:11px; font-weight:700; text-transform:uppercase; }
+  .vcs.git { background:#f05033; } .vcs.hg { background:#999; }
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px; }
+  label.f { display:grid; gap:3px; font-size:12px; color:var(--muted); }
+  #toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); padding:8px 14px; border-radius:8px; background:var(--fg); color:var(--bg); }
+  @media (max-width:560px) { .repo { grid-template-columns:minmax(0,1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="icons/48.png" alt=""><h1>EnvSwitch Einstellungen</h1></header>
+
+  <section>
+    <h2>1. Hilfsprogramm einrichten</h2>
+    <div class="muted">Chrome darf selbst keine git- oder hg-Befehle ausführen. Das erledigt ein kleines Hilfsprogramm, das du einmal einrichtest. Es kann nur die Aktionen des Branch Managers ausführen, sonst nichts.</div>
+    <div class="status"><span class="dot" id="hostDot"></span><span id="hostText" class="grow">Noch nicht geprüft</span><button class="ghost" id="ping">Verbindung prüfen</button></div>
+    <ol>
+      <li><b>Node.js</b> muss installiert sein (<code>node -v</code> im Terminal zeigt eine Version).</li>
+      <li>Im EnvSwitch-Repo liegt der Ordner <code>helper</code>. Dort ein Terminal öffnen und ausführen:
+        <div class="cmd"><code id="cmd"></code><button id="copyCmd">Kopieren</button></div>
+        <div class="muted">Den Ordner danach nicht verschieben. Auf einem zweiten Computer (z. B. Arbeit und privat) dort ebenfalls ausführen, jeweils mit der ID aus diesen Einstellungen.</div>
+      </li>
+      <li>Auf <b>Verbindung prüfen</b> klicken. Klappt es nicht, Chrome einmal ganz schliessen und neu öffnen.</li>
+    </ol>
+    <div class="muted">Diese Extension-ID: <code id="extId"></code></div>
+  </section>
+
+  <section>
+    <h2>2. Funktionen</h2>
+    <div class="muted">Wähle aus, was im Popup im Tab „Branches“ erscheinen soll.</div>
+    <div class="feats" id="feats"></div>
+  </section>
+
+  <section>
+    <h2>3. Repos pro Projekt</h2>
+    <div class="muted">Den Ordner angeben, in dem das Projekt auf deinem Computer liegt, z. B. <code>~/projects/christ</code> oder <code>C:\dev\christ</code>. git oder hg wird automatisch erkannt.</div>
+    <div id="repos"></div>
+  </section>
+
+  <section>
+    <h2>Neue Branches</h2>
+    <div class="grid2">
+      <label class="f">Vorlage für den Namen
+        <input id="template" class="mono" placeholder="feature/{ticket}-{titel}">
+      </label>
+      <div class="f muted" style="align-self:end">Platzhalter: <code>{ticket}</code> (z. B. CHR-123) und <code>{titel}</code>.<br>Beispiel: <code id="preview"></code></div>
+      <label class="f">Mercurial: neuer Branch als
+        <select id="hgNew"><option value="branch">Named Branch (hg branch)</option><option value="bookmark">Bookmark (hg bookmark)</option></select>
+      </label>
+      <label class="f">Git: Pull-Verhalten
+        <select id="gitPull"><option value="ff-only">Nur Fast-Forward (sicher)</option><option value="rebase">Rebase</option><option value="merge">Merge</option></select>
+      </label>
+    </div>
+  </section>
+
+
+  <section>
+    <h2>Erweitert</h2>
+    <div class="grid2">
+      <label class="f">Pfad zu git (leer = automatisch)
+        <input id="binGit" class="mono" placeholder="/opt/homebrew/bin/git">
+      </label>
+      <label class="f">Pfad zu hg (leer = automatisch)
+        <input id="binHg" class="mono" placeholder="C:\Program Files\TortoiseHg\hg.exe">
+      </label>
+      <label class="f">Anzahl letzte Commits
+        <input id="logCount" type="number" min="1" max="50">
+      </label>
+    </div>
+  </section>
+</main>
+<div id="toast" hidden></div>
+<script src="common.js"></script>
+<script src="options.js"></script>
+</body>
+</html>

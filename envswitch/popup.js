@@ -6,6 +6,7 @@ let cache = [];
 const h = (tag, props = {}, ...kids) => {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {
+    if (v == null) continue;
     if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
     else if (k in el) el[k] = v;
     else el.setAttribute(k, v);
@@ -90,6 +91,7 @@ $('importLink').addEventListener('click', () => {
 const TABS = [
   { id: 'switch', label: 'Switcher' },
   { id: 'api', label: 'API' },
+  { id: 'git', label: 'Branches' },
 ];
 let view = 'switch';
 const tabCount = {};
@@ -114,7 +116,9 @@ function showView(id) {
   document.querySelectorAll('.view').forEach(v => (v.hidden = v.dataset.view !== id));
   renderTabs();
   chrome.storage.local.set({ popupTab: id });
+  if (id === 'git' && ready) renderVcs();
 }
+let ready = false;
 
 function resetForm() {
   editing = null;
@@ -313,6 +317,8 @@ Promise.all([chrome.tabs.query({ active: true, currentWindow: true }), chrome.st
   $('addCurrent').hidden = !tab?.url?.startsWith('http');
   $('marker').checked = s.marker !== false;
   render();
+  ready = true;
+  if (view === 'git') renderVcs();
 });
 
 // ---------- Schnell-Requests (im API-Tester mit ★ markiert) ----------
@@ -563,3 +569,241 @@ $('addForm').addEventListener('submit', async ev => {
   closeAdd();
   render();
 });
+
+// ---------- Branch Manager ----------
+
+let V = null; // Einstellungen
+const vcsState = new Map(); // pro Repo: info, branches, log, Meldungen
+
+$('vcsSettings').addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('options.html#repos') });
+  window.close();
+});
+
+async function renderVcs() {
+  V = await VCS.get();
+  const projects = await LS.projects();
+  const m = tab?.url ? LS.match(projects, tab.url) : null;
+  const withRepos = projects.filter(p => (V.repos[p.id] ?? []).some(r => r.path));
+  const list = m && withRepos.includes(m.project) ? [m.project] : withRepos;
+  if (!list.length) {
+    put(
+      $('vcsBox'),
+      h(
+        'div',
+        { className: 'empty muted' },
+        'Noch kein Repo eingerichtet.',
+        h('br'),
+        'Unten auf „Branch Manager einrichten“ klicken und pro Projekt den Ordner angeben.'
+      )
+    );
+    return;
+  }
+  put(
+    $('vcsBox'),
+    list.map(p => h('div', { className: 'vgroup' }, (list.length > 1 || !m) && h('h1', {}, p.name), V.repos[p.id].filter(r => r.path).map(r => repoCard(p, r))))
+  );
+}
+
+function repoCard(p, r) {
+  const el = h('div', { className: 'rc' });
+  if (!vcsState.has(r.id)) vcsState.set(r.id, {});
+  const st = vcsState.get(r.id);
+  const draw = () => put(el, cardBody(p, r, st, draw));
+  draw();
+  if (!st.info && !st.busy) act(p, r, st, draw, 'info');
+  return el;
+}
+
+const DONE = { switch: 'Gewechselt.', create: 'Branch erstellt.', pull: 'Pull fertig.', push: 'Push fertig.', fetch: 'Abgerufen.' };
+
+async function act(p, r, st, draw, op, extra = {}) {
+  st.busy = op;
+  st.err = null;
+  if (op !== 'branches' && op !== 'log') st.msg = null;
+  draw();
+  try {
+    const res = await VCS.call({ op, path: r.path, ...extra }, V);
+    st.vcs = res.vcs;
+    if (op === 'info') st.info = res;
+    if (res.info) st.info = res.info;
+    if (op === 'branches') st.branches = res.branches;
+    if (op === 'log') st.log = res.commits;
+    if (DONE[op]) {
+      st.branches = null;
+      st.log = null;
+      st.openList = false;
+      st.openNew = false;
+      const out = (res.out ?? '').trim().split('\n').slice(-3).join('\n');
+      st.msg = [res.note ?? DONE[op], out].filter(Boolean).join('\n');
+    }
+    // Branch für die Markierung auf lokalen Seiten merken (erstes Repo des Projekts)
+    if (st.info && V.repos[p.id]?.find(x => x.path)?.id === r.id) {
+      const { vcsBranch = {} } = await chrome.storage.local.get('vcsBranch');
+      if (vcsBranch[p.id]?.branch !== st.info.branch) chrome.storage.local.set({ vcsBranch: { ...vcsBranch, [p.id]: { branch: st.info.branch, at: Date.now() } } });
+    }
+  } catch (err) {
+    st.err = err.message;
+  }
+  st.busy = null;
+  draw();
+  if (st.openLog && !st.log && op !== 'log' && !st.err && V.features.log) act(p, r, st, draw, 'log', { count: V.logCount });
+}
+
+function cardBody(p, r, st, draw) {
+  const F = V.features;
+  const i = st.info;
+  const run = (op, extra) => act(p, r, st, draw, op, extra);
+  const busy = !!st.busy;
+  const btn = (label, onclick, opts = {}) => h('button', { className: 'mini' + (opts.on ? ' on' : ''), disabled: busy && !opts.always, title: opts.title, onclick }, label);
+
+  const head = h(
+    'div',
+    { className: 'rhead' },
+    st.vcs && h('span', { className: `vcs ${st.vcs}` }, st.vcs),
+    h('b', { title: r.path }, r.name || r.path),
+    h('button', { className: 'link', style: 'padding:0', disabled: busy, title: 'Neu laden', onclick: () => run('info') }, '⟳')
+  );
+  if (!i) return [head, st.busy ? h('div', { className: 'busy' }, 'Lade …') : null, st.err && h('div', { className: 'rerr' }, st.err)];
+
+  const changed = i.changes?.length ?? 0;
+  const parts = [head];
+
+  if (F.branch) parts.push(h('div', { className: 'br' }, '⎇', h('b', {}, i.branch || '?'), i.bookmark && h('span', { className: 'muted' }, `★ ${i.bookmark}`)));
+
+  if (F.sync) {
+    const files = (i.changes ?? []).slice(0, 25).map(c => `${c.s} ${c.f}`).join('\n') + (changed > 25 ? `\n… ${changed - 25} weitere` : '');
+    parts.push(
+      h(
+        'div',
+        { className: 'stat' },
+        changed ? h('span', { className: 'pill2 warn2', title: files }, `${changed} geändert`) : h('span', { className: 'pill2' }, 'sauber'),
+        i.ahead > 0 && h('span', { className: 'pill2 up', title: st.vcs === 'hg' ? 'Draft-Commits auf diesem Branch' : `Vor ${i.upstream ?? 'Upstream'}` }, `${i.ahead} nicht gepusht`),
+        i.behind > 0 && h('span', { className: 'pill2 warn2' }, `${i.behind} hinter`),
+        st.vcs === 'git' && !i.upstream && h('span', { className: 'pill2', title: 'Push legt den Branch auf origin an' }, 'noch nicht auf Server')
+      ),
+      h(
+        'div',
+        { className: 'acts' },
+        btn('↓ Pull', () => run('pull', { mode: V.gitPull })),
+        btn('↑ Push', guard(true, `Push ${i.branch}?`, () => run('push'))),
+        st.vcs === 'git' && btn('Fetch', () => run('fetch'), { title: 'Neues vom Server holen, ohne zu mergen' }),
+        F.switch && btn('Wechseln', () => toggle('openList'), { on: st.openList }),
+        F.switch && btn('+ Neu', () => toggle('openNew'), { on: st.openNew }),
+        F.log && btn('Commits', () => toggle('openLog'), { on: st.openLog })
+      )
+    );
+  } else if (F.switch || F.log) {
+    parts.push(
+      h(
+        'div',
+        { className: 'acts' },
+        F.switch && btn('Wechseln', () => toggle('openList'), { on: st.openList }),
+        F.switch && btn('+ Neu', () => toggle('openNew'), { on: st.openNew }),
+        F.log && btn('Commits', () => toggle('openLog'), { on: st.openLog })
+      )
+    );
+  }
+
+  function toggle(k) {
+    st[k] = !st[k];
+    if (k === 'openList' && st.openList) st.openNew = false;
+    if (k === 'openNew' && st.openNew) st.openList = false;
+    draw();
+    if (k === 'openList' && st.openList && !st.branches) run('branches');
+    if (k === 'openLog' && st.openLog && !st.log) run('log', { count: V.logCount });
+    if (k === 'openList' && st.openList) el?.focus?.();
+  }
+  let el = null;
+
+  if (F.switch && st.openList) {
+    const filter = h('input', { value: st.filter ?? '', placeholder: 'Branch suchen …', spellcheck: false });
+    const listEl = h('div', { className: 'blist' });
+    const fill = () => {
+      const q = (st.filter ?? '').toLowerCase();
+      const items = (st.branches ?? []).filter(b => b.name.toLowerCase().includes(q)).slice(0, 60);
+      put(
+        listEl,
+        !st.branches ? h('div', { className: 'busy', style: 'padding:6px 8px' }, 'Lade Branches …') : !items.length ? h('div', { className: 'busy', style: 'padding:6px 8px' }, 'Kein Treffer') : null,
+        items.map(b => {
+          const cur = b.name === i.branch || b.name === i.bookmark;
+          const label = [b.remote && 'nur Server', b.kind === 'bookmark' && 'Bookmark', VCS.ago(b.date)].filter(Boolean).join(' · ');
+          const item = h('button', { className: 'bitem' + (cur ? ' cur' : ''), title: cur ? 'Aktueller Branch' : `Zu ${b.name} wechseln` }, cur ? '● ' : '', b.name, h('span', { className: 't' }, label));
+          if (!cur) item.addEventListener('click', guard(changed > 0, `${changed} Änderungen offen. Trotzdem?`, () => run('switch', { branch: b.name })));
+          return item;
+        })
+      );
+    };
+    filter.addEventListener('input', () => {
+      st.filter = filter.value;
+      fill();
+    });
+    fill();
+    el = filter;
+    parts.push(filter, listEl);
+    setTimeout(() => !busy && filter.focus(), 0);
+  }
+
+  if (F.switch && st.openNew) {
+    // Ticket aus einer offenen Jira-Seite übernehmen, z. B. …/browse/CHR-123
+    if (st.newTicket == null) {
+      const t = /\/browse\/([A-Z][A-Z0-9]+-\d+)/.exec(tab?.url ?? '')?.[1] ?? /selectedIssue=([A-Z][A-Z0-9]+-\d+)/.exec(tab?.url ?? '')?.[1] ?? '';
+      st.newTicket = t;
+      st.newTitle = t ? (tab?.title ?? '').replace(/^\[[^\]]+\]\s*/, '').replace(/\s*[-–|]\s*Jira.*$/i, '') : '';
+    }
+    const ticket = h('input', { value: st.newTicket, placeholder: 'Ticket, z. B. CHR-123', spellcheck: false });
+    const title = h('input', { value: st.newTitle, placeholder: 'Titel, z. B. Warenkorb fixen' });
+    const name = h('input', { value: st.newName ?? VCS.branchName(V.template, st.newTicket, st.newTitle), className: '', style: 'font-family:ui-monospace,Consolas,monospace', spellcheck: false });
+    const upd = () => {
+      st.newTicket = ticket.value;
+      st.newTitle = title.value;
+      if (!st.nameEdited) name.value = VCS.branchName(V.template, ticket.value, title.value);
+    };
+    ticket.addEventListener('input', upd);
+    title.addEventListener('input', upd);
+    name.addEventListener('input', () => {
+      st.nameEdited = true;
+      st.newName = name.value;
+    });
+    const create = () => {
+      const b = name.value.trim();
+      if (!b) return;
+      st.newName = null;
+      st.nameEdited = false;
+      st.newTicket = null;
+      run('create', { branch: b, kind: V.hgNew });
+    };
+    name.addEventListener('keydown', ev => ev.key === 'Enter' && create());
+    parts.push(
+      h(
+        'div',
+        { className: 'newb' },
+        h('div', { className: 'two' }, ticket, title),
+        name,
+        h(
+          'div',
+          { className: 'row' },
+          h('span', { className: 'muted', style: 'margin-right:auto' }, st.vcs === 'hg' ? (V.hgNew === 'bookmark' ? 'als Bookmark' : 'als Named Branch') : `ab ${i.branch}`),
+          h('button', { className: 'btn', disabled: busy, onclick: create }, 'Erstellen')
+        )
+      )
+    );
+    setTimeout(() => !busy && (st.newTicket ? title : ticket).focus(), 0);
+  }
+
+  if (F.log && st.openLog) {
+    parts.push(
+      h(
+        'div',
+        { className: 'commits' },
+        !st.log ? h('div', { className: 'busy' }, 'Lade Commits …') : !st.log.length ? h('div', { className: 'busy' }, 'Noch keine Commits.') : null,
+        (st.log ?? []).map(c => h('div', { className: 'commit', title: `${c.id} · ${c.author}` }, h('code', {}, c.id.slice(0, 7)), h('span', {}, c.msg), h('small', {}, `${c.author} · ${VCS.ago(c.date)}`)))
+      )
+    );
+  }
+
+  if (st.busy && !['branches', 'log'].includes(st.busy)) parts.push(h('div', { className: 'busy' }, { info: 'Lade …', pull: 'Pull läuft …', push: 'Push läuft …', fetch: 'Fetch läuft …', switch: 'Wechsle …', create: 'Erstelle …' }[st.busy]));
+  if (st.err) parts.push(h('div', { className: 'rerr' }, st.err));
+  if (st.msg) parts.push(h('div', { className: 'rmsg' }, st.msg));
+  return parts;
+}

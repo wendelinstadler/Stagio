@@ -89,6 +89,43 @@
   .addrow input { flex:1; min-width:0; font-family:ui-monospace,Consolas,monospace; font-size:12px; }
   select { padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; }
   #addInfo:empty, #addErr:empty { display:none; }
+  /* Branch Manager */
+  #vcsBox { display:grid; gap:10px; }
+  .vgroup { display:grid; gap:6px; }
+  .rc { border:1px solid var(--line); border-radius:8px; padding:8px 10px; display:grid; gap:6px; }
+  .rhead { display:flex; align-items:center; gap:6px; }
+  .rhead b { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .vcs { padding:0 5px; border-radius:4px; color:#fff; font-size:10px; font-weight:700; text-transform:uppercase; }
+  .vcs.git { background:#f05033; } .vcs.hg { background:#8a8a8a; }
+  .br { display:flex; align-items:center; gap:6px; font-family:ui-monospace,Consolas,monospace; font-size:12px; overflow-wrap:anywhere; }
+  .br b { font-weight:700; }
+  .stat { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; font-size:12px; }
+  .pill2 { padding:0 7px; border-radius:999px; background:var(--soft); font-size:11px; }
+  .pill2.warn2 { background:color-mix(in srgb, #b06000 18%, var(--bg)); color:#b06000; }
+  .pill2.up { background:color-mix(in srgb, var(--accent) 16%, var(--bg)); color:var(--accent); }
+  .acts { display:flex; flex-wrap:wrap; gap:4px; }
+  .mini { padding:2px 9px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; font-size:12px; cursor:pointer; }
+  .mini:hover { background:var(--soft); }
+  .mini.on { border-color:var(--accent); color:var(--accent); font-weight:600; }
+  .mini:disabled { opacity:.5; cursor:default; }
+  .blist { display:grid; max-height:180px; overflow:auto; border:1px solid var(--line); border-radius:6px; }
+  .bitem { display:flex; align-items:center; gap:6px; width:100%; padding:5px 8px; border:0; border-bottom:1px solid var(--line); background:var(--bg); color:var(--fg); font:12px ui-monospace,Consolas,monospace; text-align:left; cursor:pointer; }
+  .bitem:last-child { border-bottom:0; }
+  .bitem:hover { background:var(--soft); }
+  .bitem.cur { color:var(--accent); font-weight:700; cursor:default; }
+  .bitem .t { margin-left:auto; color:var(--muted); font:11px system-ui,sans-serif; white-space:nowrap; }
+  .bitem[data-armed] { color:var(--bad); }
+  .newb { display:grid; gap:4px; padding:8px; border-radius:6px; background:var(--soft); }
+  .newb .two { display:grid; grid-template-columns:110px minmax(0,1fr); gap:4px; }
+  .newb input { font-size:12px; padding:5px 7px; }
+  .commits { display:grid; gap:3px; font-size:12px; }
+  .commit { display:grid; grid-template-columns:auto minmax(0,1fr); gap:0 8px; }
+  .commit code { color:var(--muted); font-size:11px; }
+  .commit span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .commit small { grid-column:2; color:var(--muted); font-size:11px; }
+  .busy { color:var(--muted); font-size:12px; }
+  .rerr { color:var(--bad); font-size:12px; white-space:pre-wrap; overflow-wrap:anywhere; max-height:120px; overflow:auto; }
+  .rmsg { color:var(--muted); font-size:12px; white-space:pre-wrap; max-height:80px; overflow:auto; }
 </style>
 </head>
 <body>
@@ -142,6 +179,11 @@
 </form>
 <button class="btn wide" id="addBtn">+ Request hinzufügen</button>
 <button class="link plain" id="importLink" style="justify-self:center;margin:0">Mehrere importieren (cURL, Postman, HAR, OpenAPI) ↗</button>
+</div>
+
+<div class="view" data-view="git" hidden>
+<section id="vcsBox"></section>
+<button class="link plain" id="vcsSettings" style="justify-self:center;margin:0">⚙ Branch Manager einrichten</button>
 </div>
 
 <footer class="muted" style="text-align:center"><a href="https://github.com/wendelinstadler/envswitch" target="_blank" rel="noopener noreferrer">EnvSwitch auf GitHub</a></footer>

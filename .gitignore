@@ -1,0 +1,5 @@
+# Vom Installer erzeugt (pro Computer)
+helper/envswitch-host.sh
+helper/envswitch-host.bat
+helper/com.envswitch.vcs.json
+.DS_Store

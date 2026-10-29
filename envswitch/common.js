@@ -504,3 +504,79 @@ AP.detect = text => {
   if (j.app === 'EnvSwitch' || j.app === 'ApiPeek') return { kind: 'backup', data: j };
   return null;
 };
+
+// ---------- Branch Manager (git und hg über das Hilfsprogramm) ----------
+globalThis.VCS = {
+  HOST: 'com.envswitch.vcs',
+
+  DEFAULTS: {
+    features: { branch: true, switch: true, sync: true, log: true },
+    showOnPage: true,
+    template: 'feature/{ticket}-{titel}',
+    hgNew: 'branch',
+    gitPull: 'ff-only',
+    logCount: 10,
+    bins: { git: '', hg: '' },
+    repos: {}, // { [projectId]: [{ id, name, path }] }
+  },
+
+  async get() {
+    const { vcs } = await chrome.storage.local.get('vcs');
+    const d = structuredClone(this.DEFAULTS);
+    return { ...d, ...vcs, features: { ...d.features, ...vcs?.features }, bins: { ...d.bins, ...vcs?.bins }, repos: vcs?.repos ?? {} };
+  },
+
+  save(v) {
+    return chrome.storage.local.set({ vcs: v });
+  },
+
+  // Eine Aktion im Hilfsprogramm ausführen. Wirft verständliche Fehler.
+  call(msg, settings) {
+    return new Promise((resolve, reject) => {
+      if (!chrome.runtime.sendNativeMessage) return reject(new Error('Branch Manager braucht die Berechtigung „nativeMessaging“. Extension neu laden.'));
+      const bins = Object.fromEntries(Object.entries(settings?.bins ?? {}).filter(([, v]) => v));
+      chrome.runtime.sendNativeMessage(this.HOST, { ...msg, bins }, res => {
+        const err = chrome.runtime.lastError;
+        if (err) return reject(new Error(this.explain(err.message)));
+        if (!res) return reject(new Error('Keine Antwort vom Hilfsprogramm.'));
+        if (!res.ok) return reject(new Error(res.error));
+        resolve(res);
+      });
+    });
+  },
+
+  explain(m) {
+    if (/not found/i.test(m)) return 'Hilfsprogramm nicht installiert. Siehe Einstellungen → Hilfsprogramm.';
+    if (/forbidden/i.test(m)) return 'Das Hilfsprogramm kennt diese Extension nicht. install.js mit der ID aus den Einstellungen nochmals ausführen.';
+    if (/exited|communicating|failed to start/i.test(m)) return 'Hilfsprogramm startet nicht (Node verschoben?). install.js nochmals ausführen.';
+    return m;
+  },
+
+  // "feature/{ticket}-{titel}" + "CHR-123" + "Warenkorb fixen" -> "feature/CHR-123-warenkorb-fixen"
+  branchName(template, ticket, title) {
+    const slug = String(title ?? '')
+      .toLowerCase()
+      .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+      .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 50);
+    const t = String(ticket ?? '').trim().toUpperCase().replace(/[^A-Z0-9-]+/g, '');
+    return String(template || '{ticket}-{titel}')
+      .replace(/\{ticket\}/g, t)
+      .replace(/\{titel\}/g, slug)
+      .replace(/-{2,}/g, '-')
+      .replace(/\/-|-\//g, '/')
+      .replace(/^[-/]+|[-/]+$/g, '');
+  },
+
+  ago(ts) {
+    if (!ts) return '';
+    const s = Math.max(0, Date.now() / 1000 - ts);
+    if (s < 60) return 'gerade eben';
+    if (s < 3600) return `vor ${Math.floor(s / 60)} Min.`;
+    if (s < 86400) return `vor ${Math.floor(s / 3600)} Std.`;
+    if (s < 86400 * 30) return `vor ${Math.floor(s / 86400)} T.`;
+    return new Date(ts * 1000).toLocaleDateString('de-CH');
+  },
+};

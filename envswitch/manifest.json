@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "EnvSwitch",
-  "version": "2.3.0",
-  "description": "Wechselt zwischen lokaler, Test- und Live-Umgebung, öffnet Seiten wie Backoffice mit einem Klick und testet APIs im Swagger-Stil.",
+  "version": "2.4.0",
+  "description": "Wechselt zwischen lokaler, Test- und Live-Umgebung, testet APIs im Swagger-Stil und verwaltet git- und hg-Branches pro Projekt.",
   "icons": {
     "16": "icons/16.png",
     "48": "icons/48.png",
@@ -12,7 +12,8 @@
     "storage",
     "tabGroups",
     "activeTab",
-    "scripting"
+    "scripting",
+    "nativeMessaging"
   ],
   "background": {
     "service_worker": "background.js"
@@ -54,5 +55,9 @@
     "http://*/*",
     "https://*/*"
   ],
-  "homepage_url": "https://github.com/wendelinstadler/envswitch"
+  "homepage_url": "https://github.com/wendelinstadler/envswitch",
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
 }
