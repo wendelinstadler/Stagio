@@ -1,4 +1,4 @@
-importScripts('common.js');
+importScripts('i18n.js', 'common.js');
 
 // Zeigt auf dem Icon an, in welcher Umgebung der Tab gerade ist.
 // Die Adresse eines Tabs ist nur sichtbar, wenn sie zu einer erlaubten Projekt-Adresse gehört.
@@ -17,7 +17,7 @@ async function paint(tab) {
       await chrome.action.setBadgeBackgroundColor({ tabId: tab.id, color: rec || errors ? '#c5221f' : LS.color(m.env.name) });
       await chrome.action.setBadgeTextColor({ tabId: tab.id, color: '#ffffff' });
     }
-    await chrome.action.setTitle({ tabId: tab.id, title: ['EnvSwitch', m && `${m.project.name} · ${m.env.name}`, errors && `${errors} ${errors === 1 ? 'Fehler' : 'Fehler'} auf dieser Seite`, rec && 'Aufnahme läuft'].filter(Boolean).join('\n') });
+    await chrome.action.setTitle({ tabId: tab.id, title: ['EnvSwitch', m && `${m.project.name} · ${m.env.name}`, errors && T(`${errors} Fehler auf dieser Seite`), rec && T('Aufnahme läuft')].filter(Boolean).join('\n') });
   } catch {
     /* Tab wurde inzwischen geschlossen */
   }
@@ -74,6 +74,7 @@ chrome.tabs.onUpdated.addListener((_id, info, tab) => {
 });
 // Nur bei Projekten und Einstellungen neu einrichten, nicht bei jeder Änderung im API-Tester.
 chrome.storage.onChanged.addListener(ch => {
+  if (ch.prefs) I18N.load();
   if (ch.projects || ch.marker || ch.apiOrigins || ch.prefs) sync();
 });
 chrome.permissions.onAdded.addListener(sync);
@@ -363,7 +364,7 @@ async function recSave(tabId, projectId, keys) {
   }
   const { apiCols = [] } = await chrome.storage.local.get('apiCols');
   const d = new Date(r.startedAt);
-  const name = `Aufnahme ${d.toLocaleDateString('de-CH')} ${d.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`;
+  const name = T(`Aufnahme ${d.toLocaleDateString(I18N.locale)} ${d.toLocaleTimeString(I18N.locale, { hour: '2-digit', minute: '2-digit' })}`);
   apiCols.push({ id: AP.id(), name, projectId: p.id, reqs, folded: false });
   await chrome.storage.local.set({ apiCols });
   REC.delete(tabId);
@@ -461,4 +462,9 @@ chrome.runtime.onMessage.addListener((m, sender, reply) => {
       return true;
   }
   return false;
+});
+
+// Beim ersten Installieren die Einführung zeigen
+chrome.runtime.onInstalled.addListener(d => {
+  if (d.reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') });
 });

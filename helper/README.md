@@ -1,26 +1,28 @@
-# EnvSwitch-Hilfsprogramm
+# EnvSwitch helper / Hilfsprogramm
 
-Kleines Node-Programm, über das der Branch Manager von EnvSwitch git- und hg-Befehle ausführt (Chrome „Native Messaging“).
+Small Node program that lets the EnvSwitch **Branch Manager** run git and hg (Chrome native messaging). Everything else in EnvSwitch works without it.
 
-## Einrichten
+## Install
 
-1. Node.js installieren (falls nicht vorhanden): `node -v` muss eine Version zeigen.
-2. In EnvSwitch die **Einstellungen** öffnen und den Befehl unter „Hilfsprogramm einrichten“ kopieren.
-3. In diesem Ordner ein Terminal öffnen und den Befehl ausführen:
+Requires [Node.js](https://nodejs.org) 18+. Copy the command from EnvSwitch → Settings → Branch Manager (it contains your extension ID) and run it in a terminal:
 
-   ```
-   node install.js <Extension-ID>
-   ```
+```
+npx github:wendelinstadler/envswitch <extension-id>
+```
 
-4. In den Einstellungen auf **Verbindung prüfen** klicken. Falls es nicht klappt: Chrome ganz schliessen und neu öffnen.
+Or, inside this folder: `node install.js <extension-id>`.
 
-Funktioniert auf macOS, Windows und Linux, für Chrome, Edge, Brave und Chromium. Auf mehreren Computern jeweils dort ausführen. Wird dieser Ordner verschoben, `install.js` nochmals ausführen.
+Then click **Check connection** in the settings. If it does not work, quit Chrome completely once and reopen it.
 
-Entfernen: `node install.js --uninstall`
+The program is copied to `~/.envswitch` (macOS/Linux) or `%LOCALAPPDATA%\EnvSwitch` (Windows) and registered for Chrome, Edge, Brave and Chromium. Run it on every computer you use. Uninstall: `npx github:wendelinstadler/envswitch --uninstall`.
 
-## Was das Programm darf
+## What it may do
 
-Nur diese Aktionen, in einem Ordner, der ein git- oder hg-Repo ist: Status, Branches auflisten, letzte Commits, Branch wechseln, Branch erstellen, Pull, Push, Fetch. Befehle laufen ohne Shell, Branch-Namen werden geprüft, und es wird nie auf eine Passwort-Eingabe gewartet. Für Pull/Push muss die Anmeldung schon eingerichtet sein (SSH-Key oder gespeicherte Zugangsdaten).
+Only these actions, only inside a folder that is a git or hg repository: status, list branches, recent commits, switch branch, create branch, pull, push, fetch, and read/write the file `.envswitch.json` in the repository root (team configuration). Commands run without a shell, branch names are validated, and it never waits for a password prompt (pull/push need SSH keys or saved credentials).
 
-- git: `git switch`, `git switch -c`, `git pull --ff-only` (einstellbar), `git push -u origin HEAD`, `git fetch --prune`
-- hg: `hg update --check`, `hg branch` bzw. `hg bookmark`, `hg pull --update`, `hg push -r . --new-branch`
+- git: `git switch`, `git switch -c`, `git pull --ff-only` (configurable), `git push -u origin HEAD`, `git fetch --prune`
+- hg: `hg update --check`, `hg branch` / `hg bookmark`, `hg pull --update`, `hg push -r . --new-branch`
+
+---
+
+**Deutsch:** Kleines Node-Programm, über das der Branch Manager git und hg ausführt. Einrichten: Befehl aus EnvSwitch → Einstellungen kopieren und im Terminal ausführen (`npx github:wendelinstadler/envswitch <ID>`), dann „Verbindung prüfen“. Es darf nur die oben genannten Aktionen ausführen.

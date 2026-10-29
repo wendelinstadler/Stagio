@@ -48,7 +48,7 @@ function renderFeats() {
   };
   $('feats').replaceChildren(
     ...FEATS.map(([k, t, s]) => box(V.features[k], v => ((V.features[k] = v), save()), t, s)),
-    box(V.showOnPage, v => ((V.showOnPage = v), save()), 'Branch auf der Seite anzeigen', 'Bei lokalen Umgebungen neben dem Umgebungsnamen, z. B. LOKAL · feature/CHR-123')
+    box(V.showOnPage, v => ((V.showOnPage = v), save()), 'Branch auf der Seite anzeigen', 'Bei lokalen Umgebungen neben dem Umgebungsnamen, z. B. LOKAL · feature/ABC-123')
   );
 }
 
@@ -98,7 +98,7 @@ function renderRepos() {
 function repoRow(p, r) {
   const meta = h('div', { className: 'repo-meta muted' }, r.path ? '' : 'Ordner angeben und prüfen.');
   const name = h('input', { value: r.name, placeholder: 'Name, z. B. Shop' });
-  const path = h('input', { value: r.path, className: 'mono', placeholder: '~/projects/christ', spellcheck: false });
+  const path = h('input', { value: r.path, className: 'mono', placeholder: '~/projects/shop', spellcheck: false });
   name.addEventListener('input', () => ((r.name = name.value), save(true)));
   path.addEventListener('input', () => ((r.path = path.value.trim()), save(true)));
   const check = async () => {
@@ -154,7 +154,7 @@ function renderForm() {
   $('logCount').value = V.logCount;
   preview();
 }
-const preview = () => ($('preview').textContent = VCS.branchName($('template').value || VCS.DEFAULTS.template, 'CHR-123', 'Warenkorb fixen') || '(leer)');
+const preview = () => ($('preview').textContent = VCS.branchName($('template').value || VCS.DEFAULTS.template, 'ABC-123', 'Login reparieren') || '(leer)');
 $('template').addEventListener('input', () => {
   V.template = $('template').value.trim() || VCS.DEFAULTS.template;
   preview();
@@ -182,8 +182,9 @@ async function ping() {
 }
 $('ping').addEventListener('click', ping);
 
-const cmd = `node install.js ${chrome.runtime.id}`;
+const cmd = `npx github:wendelinstadler/envswitch ${chrome.runtime.id}`;
 $('cmd').textContent = cmd;
+$('cmd2').textContent = `node install.js ${chrome.runtime.id}`;
 $('extId').textContent = chrome.runtime.id;
 $('copyCmd').addEventListener('click', async () => {
   await navigator.clipboard.writeText(cmd);
@@ -201,7 +202,14 @@ async function renderGeneral() {
     cb.addEventListener('change', () => onchange(cb.checked));
     return h('label', { className: 'check' }, cb, h('span', {}, title, h('small', {}, sub)));
   };
+  const lang = h('select', { style: 'width:auto' }, [['auto', 'Automatisch'], ['de', 'Deutsch'], ['en', 'English']].map(([v, l]) => h('option', { value: v, selected: (p.lang ?? 'auto') === v }, l)));
+  lang.addEventListener('change', async () => {
+    await PREFS.set({ lang: lang.value });
+    await I18N.load();
+    location.reload();
+  });
   $('general').replaceChildren(
+    h('label', { className: 'check', style: 'align-items:center' }, h('span', {}, 'Sprache'), lang),
     box(p.health, v => PREFS.set({ health: v }).then(() => toast('Gespeichert')), 'Server-Status anzeigen', 'Grüner/roter Punkt pro Umgebung: läuft der Server?'),
     box(p.errors, v => PREFS.set({ errors: v }).then(() => toast('Gespeichert')), 'Fehler auf der Seite sammeln', 'JS-Fehler, console.error und fehlgeschlagene Requests deiner Projektseiten im Tab „Logs“'),
     box(marker !== false, v => chrome.storage.local.set({ marker: v }).then(() => toast('Gespeichert')), 'Umgebung auf der Seite markieren', 'Farbbalken oben und Name im Tab-Titel')
@@ -279,6 +287,128 @@ function envHeaders(e) {
   );
 }
 
+/* ---------- Team-Konfiguration ---------- */
+
+const repoOf = p => (V?.repos[p.id] ?? []).find(r => r.path);
+
+async function applyTeam(text, from) {
+  const { apiCols = [] } = await chrome.storage.local.get('apiCols');
+  const fresh = await LS.projects();
+  const res = TEAM.apply(text, fresh, apiCols);
+  await LS.save(res.projects);
+  await chrome.storage.local.set({ apiCols: res.cols });
+  projects = res.projects;
+  renderProjects();
+  renderRepos();
+  renderTeam();
+  $('teamMsg').className = 'ok';
+  $('teamMsg').textContent = `${res.created ? 'Projekt angelegt' : 'Projekt aktualisiert'}: ${res.project.name} (${res.envs} Umgebungen, ${res.reqs} Requests) aus ${from}.`;
+}
+
+function teamError(err) {
+  $('teamMsg').className = 'bad';
+  $('teamMsg').textContent = err.message;
+}
+
+$('teamFileBtn').addEventListener('click', () => $('teamFile').click());
+$('teamFile').addEventListener('change', async () => {
+  const f = $('teamFile').files[0];
+  $('teamFile').value = '';
+  if (!f) return;
+  try {
+    await applyTeam(await f.text(), f.name);
+  } catch (err) {
+    teamError(err);
+  }
+});
+$('teamUrlGo').addEventListener('click', async () => {
+  const raw = $('teamUrl').value.trim();
+  if (!raw) return;
+  try {
+    const url = new URL(raw);
+    if (!(await chrome.permissions.request({ origins: [LS.pattern(url.origin)] }).catch(() => false))) throw new Error(`Kein Zugriff auf ${url.host} erlaubt.`);
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`${url.host} antwortet mit ${res.status}.`);
+    await applyTeam(await res.text(), url.host);
+    $('teamUrl').value = '';
+  } catch (err) {
+    teamError(err);
+  }
+});
+
+async function exportTeam(p) {
+  // Fester Schlüssel, damit spätere Importe dasselbe Projekt aktualisieren
+  if (!p.teamKey) {
+    p.teamKey = AP.id() + AP.id();
+    await LS.save(projects);
+  }
+  const { apiCols = [] } = await chrome.storage.local.get('apiCols');
+  return TEAM.export(p, apiCols);
+}
+
+function renderTeam() {
+  $('teamList').replaceChildren(
+    ...projects.map(p => {
+      const note = h('div', { className: 'muted' }, p.teamAt ? `Zuletzt übernommen: ${new Date(p.teamAt).toLocaleString(I18N.locale)}` : 'Noch nicht geteilt oder importiert.');
+      const show = (msg, bad) => {
+        note.className = bad ? 'bad' : 'muted';
+        note.textContent = msg;
+      };
+      // Zwei getrennte Zeilen, damit beide übersetzt werden können
+      const done = (what, replaced) => {
+        note.className = 'muted';
+        note.replaceChildren(h('div', {}, what), replaced.length ? h('div', {}, `Geheime Werte ersetzt: ${replaced.join(', ')}. Diese Variablen pro Umgebung setzen.`) : '');
+      };
+      const repo = repoOf(p);
+      return h(
+        'div',
+        { className: 'proj' },
+        h('div', { className: 'row' }, h('b', { className: 'grow' }, p.name),
+          h('button', {
+            className: 'ghost',
+            onclick: async () => {
+              const { text, replaced } = await exportTeam(p);
+              const a = h('a', { href: URL.createObjectURL(new Blob([text], { type: 'application/json' })), download: TEAM.FILE });
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+              done(`${TEAM.FILE} heruntergeladen. Ins Hauptverzeichnis des Repos legen und committen.`, replaced);
+            },
+          }, 'Exportieren'),
+          repo && h('button', {
+            className: 'ghost',
+            title: `${TEAM.FILE} in ${repo.path} schreiben`,
+            onclick: async () => {
+              try {
+                const { text, replaced } = await exportTeam(p);
+                const r = await VCS.call({ op: 'writeTeam', path: repo.path, text }, V);
+                p.teamHash = TEAM.hash(text);
+                p.teamAt = Date.now();
+                await LS.save(projects);
+                done(`Gespeichert: ${r.written}. Jetzt committen, dann haben es alle.`, replaced);
+              } catch (err) {
+                show(/Unbekannte Aktion/.test(err.message) ? 'Hilfsprogramm ist veraltet: install-Befehl oben nochmals ausführen.' : err.message, true);
+              }
+            },
+          }, 'Ins Repo schreiben'),
+          repo && h('button', {
+            className: 'ghost',
+            onclick: async () => {
+              try {
+                const r = await VCS.call({ op: 'readTeam', path: repo.path }, V);
+                if (!r.exists) return show(`Im Repo liegt noch keine ${TEAM.FILE}.`, true);
+                await applyTeam(r.text, 'dem Repo');
+              } catch (err) {
+                show(/Unbekannte Aktion/.test(err.message) ? 'Hilfsprogramm ist veraltet: install-Befehl oben nochmals ausführen.' : err.message, true);
+              }
+            },
+          }, 'Aus Repo laden')
+        ),
+        note
+      );
+    })
+  );
+}
+
 /* ---------- Start ---------- */
 
 Promise.all([VCS.get(), LS.projects()]).then(([v, p]) => {
@@ -286,6 +416,7 @@ Promise.all([VCS.get(), LS.projects()]).then(([v, p]) => {
   projects = p;
   renderGeneral();
   renderProjects();
+  renderTeam();
   renderFeats();
   renderRepos();
   renderForm();

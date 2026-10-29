@@ -1,0 +1,23 @@
+{
+  "extName": {
+    "message": "EnvSwitch"
+  },
+  "extDesc": {
+    "message": "Switch between local, test and live environments, test APIs Swagger-style, collect page errors and manage git/hg branches per project."
+  },
+  "cmdNext": {
+    "message": "Switch to the next environment"
+  },
+  "cmd1": {
+    "message": "Switch to the 1st environment"
+  },
+  "cmd2": {
+    "message": "Switch to the 2nd environment"
+  },
+  "cmd3": {
+    "message": "Switch to the 3rd environment"
+  },
+  "cmdApi": {
+    "message": "Open API tester"
+  }
+}

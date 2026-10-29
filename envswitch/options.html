@@ -79,6 +79,19 @@
     <div id="projects"></div>
   </section>
 
+  <section>
+    <h2>Team-Konfiguration teilen</h2>
+    <div class="muted">Ein Projekt als <code>.envswitch.json</code> exportieren und ins Projekt-Repo legen. Kolleginnen und Kollegen importieren die Datei und haben dieselben Umgebungen, Seiten, Header-Presets und Requests. Variablen (Tokens) bleiben lokal, geheime Header-Werte werden durch <code>{{variablen}}</code> ersetzt. Ist der Branch Manager eingerichtet, meldet das Popup neue Versionen aus dem Repo.</div>
+    <div class="row">
+      <button class="ghost" id="teamFileBtn">Team-Datei importieren …</button>
+      <input type="file" id="teamFile" accept=".json,application/json" hidden>
+      <input id="teamUrl" class="mono grow" placeholder="… oder Link, z. B. https://raw.githubusercontent.com/…/.envswitch.json" style="width:auto;min-width:240px">
+      <button class="btn" id="teamUrlGo">Laden</button>
+    </div>
+    <div id="teamMsg" class="muted"></div>
+    <div id="teamList" style="display:grid;gap:8px"></div>
+  </section>
+
   <h2 style="margin:10px 0 -6px;font-size:17px">Branch Manager</h2>
 
   <section>
@@ -87,9 +100,10 @@
     <div class="status"><span class="dot" id="hostDot"></span><span id="hostText" class="grow">Noch nicht geprüft</span><button class="ghost" id="ping">Verbindung prüfen</button></div>
     <ol>
       <li><b>Node.js</b> muss installiert sein (<code>node -v</code> im Terminal zeigt eine Version).</li>
-      <li>Im EnvSwitch-Repo liegt der Ordner <code>helper</code>. Dort ein Terminal öffnen und ausführen:
+      <li>Im Terminal ausführen:
         <div class="cmd"><code id="cmd"></code><button id="copyCmd">Kopieren</button></div>
-        <div class="muted">Den Ordner danach nicht verschieben. Auf einem zweiten Computer (z. B. Arbeit und privat) dort ebenfalls ausführen, jeweils mit der ID aus diesen Einstellungen.</div>
+        <div class="muted">Ohne npx (im Ordner helper des Repos): <code id="cmd2"></code></div>
+        <div class="muted">Auf einem zweiten Computer dort ebenfalls ausführen, jeweils mit der ID aus diesen Einstellungen.</div>
       </li>
       <li>Auf <b>Verbindung prüfen</b> klicken. Klappt es nicht, Chrome einmal ganz schliessen und neu öffnen.</li>
     </ol>
@@ -104,7 +118,7 @@
 
   <section>
     <h2>3. Repos pro Projekt</h2>
-    <div class="muted">Den Ordner angeben, in dem das Projekt auf deinem Computer liegt, z. B. <code>~/projects/christ</code> oder <code>C:\dev\christ</code>. git oder hg wird automatisch erkannt.</div>
+    <div class="muted">Den Ordner angeben, in dem das Projekt auf deinem Computer liegt, z. B. <code>~/projects/shop</code> oder <code>C:\dev\shop</code>. git oder hg wird automatisch erkannt.</div>
     <div id="repos"></div>
   </section>
 
@@ -114,7 +128,7 @@
       <label class="f">Vorlage für den Namen
         <input id="template" class="mono" placeholder="feature/{ticket}-{titel}">
       </label>
-      <div class="f muted" style="align-self:end">Platzhalter: <code>{ticket}</code> (z. B. CHR-123) und <code>{titel}</code>.<br>Beispiel: <code id="preview"></code></div>
+      <div class="f muted" style="align-self:end">Platzhalter: <code>{ticket}</code> (z. B. ABC-123) und <code>{titel}</code>.<br>Beispiel: <code id="preview"></code></div>
       <label class="f">Mercurial: neuer Branch als
         <select id="hgNew"><option value="branch">Named Branch (hg branch)</option><option value="bookmark">Bookmark (hg bookmark)</option></select>
       </label>
@@ -141,6 +155,7 @@
   </section>
 </main>
 <div id="toast" hidden></div>
+<script src="i18n.js"></script>
 <script src="common.js"></script>
 <script src="options.js"></script>
 </body>

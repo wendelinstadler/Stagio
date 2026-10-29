@@ -391,7 +391,7 @@ function addCol(name) {
 
 function addReq(c) {
   if (!project()) return toast('Lege zuerst links ein Projekt an.', true);
-  c ??= projCols()[0] ?? addCol('Meine Requests');
+  c ??= projCols()[0] ?? addCol(T('Meine Requests'));
   const r = AP.newReq();
   c.reqs.push(r);
   c.folded = false;
@@ -405,7 +405,7 @@ function addReq(c) {
 }
 
 function renameCol(c) {
-  const name = prompt('Neuer Name der Sammlung', c.name)?.trim();
+  const name = prompt(T('Neuer Name der Sammlung'), c.name)?.trim();
   if (!name) return;
   c.name = name;
   save();
@@ -731,7 +731,7 @@ function bodyEditor(r, onChange) {
     rows: 10,
     value: b.text,
     spellcheck: false,
-    placeholder: b.mode === 'form' ? 'name = Wendelin\nort = Zürich' : '{\n  "name": "Wendelin"\n}',
+    placeholder: b.mode === 'form' ? 'name = Anna\nort = Bern' : '{\n  "name": "Anna"\n}',
   });
   const hint = h('div', { className: 'bad' });
   const note = h('div', { className: 'muted' }, NO_BODY.includes(r.method) ? `${r.method} schickt keinen Body mit. Für einen Body oben POST, PUT oder PATCH wählen.` : '');
@@ -800,7 +800,7 @@ async function send(r, btn, resBox) {
   }
   const ok = await allow(req.url);
   if (!ok) {
-    showResponse(resBox, { error: `Ohne Zugriff auf ${req.url.host} kann ApiPeek nichts senden. Beim nächsten Senden im Chrome-Dialog „Zulassen“ wählen.`, sent: req.url.href });
+    showResponse(resBox, { error: `Ohne Zugriff auf ${req.url.host} kann EnvSwitch nichts senden. Beim nächsten Senden im Chrome-Dialog „Zulassen“ wählen.`, sent: req.url.href });
     return;
   }
 
@@ -1282,7 +1282,7 @@ $('importFile').addEventListener('change', async () => {
 $('newReq').addEventListener('click', () => addReq());
 $('newCol').addEventListener('click', () => {
   if (!project()) return toast('Lege zuerst links ein Projekt an.', true);
-  const name = prompt('Name der Sammlung', 'Neue Sammlung')?.trim();
+  const name = prompt(T('Name der Sammlung'), T('Neue Sammlung'))?.trim();
   if (!name) return;
   addCol(name);
   save();
@@ -1404,7 +1404,7 @@ function compareUi(r) {
     chrome.storage.local.set({ apiOrigins: S.apiOrigins });
     const ok = await chrome.permissions.request({ origins: pats }).catch(() => false);
     if (!ok) return put(out, h('div', { className: 'res-err' }, 'Ohne Zugriff auf beide Adressen geht der Vergleich nicht.'));
-    if ((LS.isProd(ea.name) || LS.isProd(eb.name)) && !NO_BODY.includes(r.method) && !confirm(`${r.method} wirklich auch an Live senden?`)) return;
+    if ((LS.isProd(ea.name) || LS.isProd(eb.name)) && !NO_BODY.includes(r.method) && !confirm(T(`${r.method} wirklich auch an Live senden?`))) return;
     put(out, h('div', { className: 'muted' }, 'Sende an beide …'));
     const one = async q => {
       const t0 = performance.now();

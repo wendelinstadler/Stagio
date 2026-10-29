@@ -1,0 +1,24 @@
+{
+  "name": "envswitch-helper",
+  "version": "2.0.0",
+  "description": "Helper for the EnvSwitch Chrome extension: lets the Branch Manager run git and hg (Chrome native messaging).",
+  "bin": {
+    "envswitch-helper": "helper/install.js"
+  },
+  "files": [
+    "helper/host.js",
+    "helper/install.js",
+    "helper/README.md"
+  ],
+  "scripts": {
+    "build": "node tools/build.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wendelinstadler/envswitch.git"
+  },
+  "license": "MIT"
+}

@@ -168,6 +168,7 @@
   .ritem:last-child { border-bottom:0; }
   .ritem code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:ui-monospace,Consolas,monospace; font-size:11px; }
   .ritem .qm { min-width:44px; font-size:10px; }
+  .teambar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:6px; background:color-mix(in srgb, var(--accent) 12%, var(--bg)); font-size:12px; }
 </style>
 </head>
 <body>
@@ -212,7 +213,7 @@
     <input id="addPath" placeholder="/api/users, Adresse oder cURL einfügen" spellcheck="false" autocomplete="off">
   </div>
   <input id="addName" placeholder="Name (optional), z. B. Alle Benutzer">
-  <textarea id="addBody" rows="4" spellcheck="false" placeholder='Body (optional), z. B. {"name": "Wendelin"}' hidden></textarea>
+  <textarea id="addBody" rows="4" spellcheck="false" placeholder='Body (optional), z. B. {"name": "Anna"}' hidden></textarea>
   <div class="muted" id="addInfo"></div>
   <div class="bad" id="addErr"></div>
   <div class="row">
@@ -234,6 +235,7 @@
 </div>
 
 <footer class="muted" style="text-align:center"><a href="https://github.com/wendelinstadler/envswitch" target="_blank" rel="noopener noreferrer">EnvSwitch auf GitHub</a></footer>
+<script src="i18n.js"></script>
 <script src="common.js"></script>
 <script src="popup.js"></script>
 </body>

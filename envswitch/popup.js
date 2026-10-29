@@ -163,7 +163,7 @@ function projectCard(p, notAllowed) {
   const group = e => ({ urls: urlsOf(e), title: `${p.name} · ${e.name}`, color: LS.groupColor(e.name) });
   return h(
     'div',
-    { className: 'proj' },
+    { className: 'proj', 'data-p': p.id },
     h(
       'div',
       { className: 'head' },
@@ -296,6 +296,7 @@ async function render() {
   const gaps = $('marker').checked ? await Promise.all(projects.map(p => missing(p.envs))) : projects.map(() => []);
   $('list').replaceChildren(...projects.map((p, i) => projectCard(p, gaps[i])));
   checkAll(projects);
+  checkTeam(projects);
   refreshLogsCount();
 }
 
@@ -766,7 +767,7 @@ function cardBody(p, r, st, draw) {
         !st.branches ? h('div', { className: 'busy', style: 'padding:6px 8px' }, 'Lade Branches …') : !items.length ? h('div', { className: 'busy', style: 'padding:6px 8px' }, 'Kein Treffer') : null,
         items.map(b => {
           const cur = b.name === i.branch || b.name === i.bookmark;
-          const label = [b.remote && 'nur Server', b.kind === 'bookmark' && 'Bookmark', VCS.ago(b.date)].filter(Boolean).join(' · ');
+          const label = [b.remote && T('nur Server'), b.kind === 'bookmark' && 'Bookmark', VCS.ago(b.date)].filter(Boolean).join(' · ');
           const item = h('button', { className: 'bitem' + (cur ? ' cur' : ''), title: cur ? 'Aktueller Branch' : `Zu ${b.name} wechseln` }, cur ? '● ' : '', b.name, h('span', { className: 't' }, label));
           if (!cur) item.addEventListener('click', guard(changed > 0, `${changed} Änderungen offen. Trotzdem?`, () => run('switch', { branch: b.name })));
           return item;
@@ -784,14 +785,14 @@ function cardBody(p, r, st, draw) {
   }
 
   if (F.switch && st.openNew) {
-    // Ticket aus einer offenen Jira-Seite übernehmen, z. B. …/browse/CHR-123
+    // Ticket aus einer offenen Jira-Seite übernehmen, z. B. …/browse/ABC-123
     if (st.newTicket == null) {
       const t = /\/browse\/([A-Z][A-Z0-9]+-\d+)/.exec(tab?.url ?? '')?.[1] ?? /selectedIssue=([A-Z][A-Z0-9]+-\d+)/.exec(tab?.url ?? '')?.[1] ?? '';
       st.newTicket = t;
       st.newTitle = t ? (tab?.title ?? '').replace(/^\[[^\]]+\]\s*/, '').replace(/\s*[-–|]\s*Jira.*$/i, '') : '';
     }
-    const ticket = h('input', { value: st.newTicket, placeholder: 'Ticket, z. B. CHR-123', spellcheck: false });
-    const title = h('input', { value: st.newTitle, placeholder: 'Titel, z. B. Warenkorb fixen' });
+    const ticket = h('input', { value: st.newTicket, placeholder: 'Ticket, z. B. ABC-123', spellcheck: false });
+    const title = h('input', { value: st.newTitle, placeholder: 'Titel, z. B. Login reparieren' });
     const name = h('input', { value: st.newName ?? VCS.branchName(V.template, st.newTicket, st.newTitle), className: '', style: 'font-family:ui-monospace,Consolas,monospace', spellcheck: false });
     const upd = () => {
       st.newTicket = ticket.value;
@@ -843,7 +844,8 @@ function cardBody(p, r, st, draw) {
 
   if (st.busy && !['branches', 'log'].includes(st.busy)) parts.push(h('div', { className: 'busy' }, { info: 'Lade …', pull: 'Pull läuft …', push: 'Push läuft …', fetch: 'Fetch läuft …', switch: 'Wechsle …', create: 'Erstelle …' }[st.busy]));
   if (st.err) parts.push(h('div', { className: 'rerr' }, st.err));
-  if (st.msg) parts.push(h('div', { className: 'rmsg' }, st.msg));
+  // Eine Zeile pro Element, damit unsere Meldung übersetzt wird und die git/hg-Ausgabe unverändert bleibt
+  if (st.msg) parts.push(h('div', { className: 'rmsg' }, st.msg.split('\n').map(l => h('div', {}, l))));
   return parts;
 }
 
@@ -924,7 +926,7 @@ function clearPanel(m, box) {
     box.querySelectorAll('input[data-k]').forEach(cb => (opts[cb.dataset.k] = cb.checked));
     status.textContent = 'Lösche …';
     const r = await chrome.runtime.sendMessage({ type: 'clear-data', origin: m.env.origin, opts, tabId: tab.id });
-    status.textContent = r?.ok ? `Gelöscht: ${r.done.join(', ') || 'nichts'}. Seite wird neu geladen.` : r?.error ?? 'Fehler';
+    status.textContent = r?.ok ? `Gelöscht: ${r.done.map(T).join(', ') || T('nichts')}. Seite wird neu geladen.` : r?.error ?? 'Fehler';
   };
   put(
     box,
@@ -971,7 +973,7 @@ async function renderLogs() {
   renderTabs();
   const KINDS = { js: 'JS', console: 'Konsole', net: 'Netz' };
   const shown = logs.filter(x => logFilter === 'all' || x.kind === logFilter).slice().reverse();
-  const asText = () => logs.map(x => `[${new Date(x.t).toLocaleTimeString('de-CH')}] ${KINDS[x.kind] ?? x.kind}: ${x.msg}${x.src ? `\n    ${x.src}` : ''}${x.n > 1 ? ` (${x.n}×)` : ''}`).join('\n');
+  const asText = () => logs.map(x => `[${new Date(x.t).toLocaleTimeString(I18N.locale)}] ${T(KINDS[x.kind] ?? x.kind)}: ${x.msg}${x.src ? `\n    ${x.src}` : ''}${x.n > 1 ? ` (${x.n}×)` : ''}`).join('\n');
   const copy = h('button', { className: 'link', style: 'padding:0' }, 'Kopieren');
   copy.addEventListener('click', async () => {
     await navigator.clipboard.writeText(`${tab.url}\n\n${asText()}`);
@@ -1012,7 +1014,7 @@ async function renderLogs() {
               { className: `log k-${x.kind}` },
               h('span', { className: 'lk' }, KINDS[x.kind] ?? x.kind),
               h('div', { className: 'lm' }, h('div', {}, x.msg, x.n > 1 && h('span', { className: 'ln' }, ` ${x.n}×`)), x.src && h('small', { title: x.src }, x.src)),
-              h('span', { className: 'lt' }, new Date(x.t).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+              h('span', { className: 'lt' }, new Date(x.t).toLocaleTimeString(I18N.locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
             )
           )
         )
@@ -1124,4 +1126,48 @@ async function renderRec() {
       msg
     )
   );
+}
+
+// ---------- 8. Neue Team-Konfiguration im Repo melden ----------
+
+// Ergebnis pro Projekt merken, damit ein neues Zeichnen das Hilfsprogramm nicht erneut fragt
+const teamReads = new Map();
+async function checkTeam(projects) {
+  const v = await VCS.get();
+  for (const p of projects) {
+    const repo = (v.repos[p.id] ?? []).find(r => r.path);
+    if (!repo) continue;
+    if (!teamReads.has(p.id)) teamReads.set(p.id, VCS.call({ op: 'readTeam', path: repo.path }, v));
+    teamReads
+      .get(p.id)
+      .then(r => {
+        if (!r.exists || TEAM.hash(r.text) === p.teamHash) return;
+        let d;
+        try {
+          d = TEAM.parse(r.text);
+        } catch {
+          return;
+        }
+        if (p.teamKey && d.key && d.key !== p.teamKey) return;
+        const card = document.querySelector(`.proj[data-p="${p.id}"]`);
+        if (!card || card.querySelector('.teambar')) return;
+        const btn = h('button', { className: 'link open', style: 'padding:0' }, 'Übernehmen');
+        const bar = h('div', { className: 'teambar' }, h('span', {}, p.teamHash ? 'Neue Team-Konfiguration im Repo' : 'Team-Konfiguration im Repo gefunden'), btn);
+        btn.addEventListener('click', async () => {
+          try {
+            const { apiCols = [] } = await chrome.storage.local.get('apiCols');
+            const res = TEAM.apply(r.text, await LS.projects(), apiCols);
+            await LS.save(res.projects);
+            await chrome.storage.local.set({ apiCols: res.cols });
+            teamReads.delete(p.id);
+            bar.replaceChildren(h('span', {}, `Übernommen: ${res.envs} Umgebungen, ${res.reqs} Requests.`));
+            setTimeout(render, 1200);
+          } catch (err) {
+            bar.replaceChildren(h('span', { className: 'bad' }, err.message));
+          }
+        });
+        card.append(bar);
+      })
+      .catch(() => {});
+  }
 }

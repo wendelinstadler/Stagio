@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "EnvSwitch",
-  "version": "2.5.0",
-  "description": "Wechselt zwischen lokaler, Test- und Live-Umgebung, testet APIs im Swagger-Stil und verwaltet git- und hg-Branches pro Projekt.",
+  "name": "__MSG_extName__",
+  "version": "3.0.0",
+  "description": "__MSG_extDesc__",
   "icons": {
     "16": "icons/16.png",
     "48": "icons/48.png",
@@ -31,28 +31,28 @@
       "suggested_key": {
         "default": "Alt+Shift+E"
       },
-      "description": "Zur nächsten Umgebung wechseln"
+      "description": "__MSG_cmdNext__"
     },
     "env-1": {
       "suggested_key": {
         "default": "Alt+Shift+1"
       },
-      "description": "Zur 1. Umgebung wechseln"
+      "description": "__MSG_cmd1__"
     },
     "env-2": {
       "suggested_key": {
         "default": "Alt+Shift+2"
       },
-      "description": "Zur 2. Umgebung wechseln"
+      "description": "__MSG_cmd2__"
     },
     "env-3": {
       "suggested_key": {
         "default": "Alt+Shift+3"
       },
-      "description": "Zur 3. Umgebung wechseln"
+      "description": "__MSG_cmd3__"
     },
     "open-api": {
-      "description": "API-Tester öffnen"
+      "description": "__MSG_cmdApi__"
     }
   },
   "optional_host_permissions": [
@@ -63,5 +63,6 @@
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
-  }
+  },
+  "default_locale": "en"
 }

@@ -1,3 +1,4 @@
+globalThis.T ??= s => s;
 // Gemeinsame Logik für Popup, Service Worker und Seiten-Markierung.
 // Alle Daten bleiben in chrome.storage.local, also nur auf diesem Computer.
 globalThis.LS = {
@@ -556,7 +557,7 @@ globalThis.VCS = {
     return m;
   },
 
-  // "feature/{ticket}-{titel}" + "CHR-123" + "Warenkorb fixen" -> "feature/CHR-123-warenkorb-fixen"
+  // "feature/{ticket}-{titel}" + "ABC-123" + "Login reparieren" -> "feature/ABC-123-login-reparieren"
   branchName(template, ticket, title) {
     const slug = String(title ?? '')
       .toLowerCase()
@@ -577,17 +578,17 @@ globalThis.VCS = {
   ago(ts) {
     if (!ts) return '';
     const s = Math.max(0, Date.now() / 1000 - ts);
-    if (s < 60) return 'gerade eben';
-    if (s < 3600) return `vor ${Math.floor(s / 60)} Min.`;
-    if (s < 86400) return `vor ${Math.floor(s / 3600)} Std.`;
-    if (s < 86400 * 30) return `vor ${Math.floor(s / 86400)} T.`;
-    return new Date(ts * 1000).toLocaleDateString('de-CH');
+    if (s < 60) return T('gerade eben');
+    if (s < 3600) return T(`vor ${Math.floor(s / 60)} Min.`);
+    if (s < 86400) return T(`vor ${Math.floor(s / 3600)} Std.`);
+    if (s < 86400 * 30) return T(`vor ${Math.floor(s / 86400)} T.`);
+    return new Date(ts * 1000).toLocaleDateString(globalThis.I18N?.locale ?? 'de-CH');
   },
 };
 
 // ---------- Allgemeine Einstellungen ----------
 globalThis.PREFS = {
-  DEFAULTS: { health: true, errors: true },
+  DEFAULTS: { health: true, errors: true, lang: 'auto' },
   async get() {
     const { prefs } = await chrome.storage.local.get('prefs');
     return { ...this.DEFAULTS, ...prefs };
@@ -648,5 +649,136 @@ globalThis.HEALTH = {
     if (!r) return 'Prüfe …';
     if (r.state === 'down') return `Antwortet nicht (${r.error}) · ${r.url}`;
     return `${r.status ? `Status ${r.status}` : 'Erreichbar'} · ${r.ms} ms · ${r.url}`;
+  },
+};
+
+// ---------- Team-Konfiguration (.envswitch.json) ----------
+// Projekt, Umgebungen, Seiten, Header-Presets und API-Sammlungen als Datei fürs Projekt-Repo.
+// Nie drin: Variablen (Tokens) und persönliche Einstellungen. Geheime Header-Werte werden durch {{variablen}} ersetzt.
+globalThis.TEAM = {
+  FILE: '.envswitch.json',
+  SECRET: /^(authorization|proxy-authorization|cookie)$|api[_-]?key|token|secret|passw|session|^x-auth/i,
+
+  // Kurzer Fingerabdruck, um Änderungen zu erkennen
+  hash(text) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0;
+    return h.toString(36);
+  },
+
+  // Geheimen Wert durch Variable ersetzen. Gibt [neuerWert, ersetzt?] zurück.
+  scrub(name, value, replaced) {
+    const v = String(value ?? '');
+    if (!this.SECRET.test(name) || !v || /\{\{.+\}\}/.test(v)) return v;
+    const slug = String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    const out = /^bearer\s+/i.test(v) ? 'Bearer {{token}}' : /^basic\s+/i.test(v) ? 'Basic {{basic_auth}}' : `{{${slug}}}`;
+    replaced.add(`${name} → ${out}`);
+    return out;
+  },
+
+  export(project, cols) {
+    const replaced = new Set();
+    const envs = project.envs.map(e => {
+      const out = { name: e.name, origin: e.origin };
+      if (e.headers?.trim()) {
+        out.headers = e.headers
+          .split('\n')
+          .map(line => {
+            const m = /^([^:=\s]+)\s*([:=])\s*(.*)$/.exec(line.trim());
+            return m ? `${m[1]}${m[2] === ':' ? ': ' : ' = '}${this.scrub(m[1], m[3], replaced)}` : line;
+          })
+          .join('\n');
+      }
+      return out;
+    });
+    const collections = cols
+      .filter(c => c.projectId === project.id)
+      .map(c => ({
+        name: c.name,
+        reqs: c.reqs.map(r => ({
+          id: r.id,
+          method: r.method,
+          path: r.path,
+          summary: r.summary || undefined,
+          params: (r.params ?? []).filter(p => p.k?.trim()).map(p => ({ k: p.k, v: this.scrub(p.k, p.v, replaced), on: p.on !== false })),
+          headers: (r.headers ?? []).filter(p => p.k?.trim()).map(p => ({ k: p.k, v: this.scrub(p.k, p.v, replaced), on: p.on !== false })),
+          pathVals: Object.keys(r.pathVals ?? {}).length ? r.pathVals : undefined,
+          body: r.body?.text?.trim() ? r.body : undefined,
+        })),
+      }));
+    const data = {
+      envswitch: 1,
+      key: project.teamKey,
+      name: project.name,
+      health: project.health || undefined,
+      envs,
+      pages: project.pages?.length ? project.pages : undefined,
+      collections,
+    };
+    return { text: JSON.stringify(data, null, 2) + '\n', replaced: [...replaced] };
+  },
+
+  parse(text) {
+    let d;
+    try {
+      d = JSON.parse(text);
+    } catch {
+      throw new Error('Die Datei ist kein gültiges JSON.');
+    }
+    if (d?.envswitch !== 1) throw new Error('Das ist keine EnvSwitch-Team-Datei (.envswitch.json).');
+    if (!d.name || !Array.isArray(d.envs) || !d.envs.length) throw new Error('In der Team-Datei fehlen Name oder Umgebungen.');
+    for (const e of d.envs) {
+      if (!e?.name || !e.origin) throw new Error('Jede Umgebung braucht name und origin.');
+      e.origin = LS.origin(e.origin);
+      if (e.headers) HDR.parse(e.headers);
+    }
+    return d;
+  },
+
+  // Übernimmt eine Team-Datei: aktualisiert das passende Projekt (gleicher Schlüssel oder Name) oder legt eins an.
+  apply(text, projects, cols) {
+    const d = this.parse(text);
+    let p = (d.key && projects.find(x => x.teamKey === d.key)) || projects.find(x => !x.teamKey && x.name.toLowerCase() === d.name.toLowerCase());
+    const created = !p;
+    if (!p) {
+      p = { id: Date.now().toString(36), name: d.name, envs: [], pages: [] };
+      projects.push(p);
+    }
+    const envs = d.envs.map(e => ({ name: e.name, origin: e.origin, ...(e.headers ? { headers: e.headers } : {}) }));
+    Object.assign(p, {
+      name: d.name,
+      teamKey: d.key || p.teamKey || AP.id() + AP.id(),
+      envs: AP.keepVars(p.envs, envs),
+      pages: d.pages ?? [],
+      health: d.health ?? '',
+      teamHash: this.hash(text),
+      teamAt: Date.now(),
+    });
+    // Team-Sammlungen ersetzen, eigene Sammlungen bleiben. Sterne (im Popup) bleiben erhalten.
+    const pinned = new Set(cols.filter(c => c.projectId === p.id).flatMap(c => c.reqs.filter(r => r.pin).map(r => r.id)));
+    const keep = cols.filter(c => !(c.projectId === p.id && c.src === 'team'));
+    const fresh = (d.collections ?? []).map(c => ({
+      id: AP.id(),
+      name: c.name,
+      projectId: p.id,
+      src: 'team',
+      folded: false,
+      reqs: (c.reqs ?? []).map(r => {
+        const req = AP.newReq({ ...r, id: r.id || AP.id(), params: r.params ?? [], headers: r.headers ?? [], pathVals: r.pathVals ?? {}, body: r.body ?? { mode: 'json', text: '' }, summary: r.summary ?? '' });
+        if (pinned.has(req.id)) req.pin = true;
+        return req;
+      }),
+    }));
+    // Lokale Kopien derselben Requests (gleiche ID) in eigenen Sammlungen nicht doppelt lassen
+    const ids = new Set(fresh.flatMap(c => c.reqs.map(r => r.id)));
+    const emptied = new Set();
+    for (const c of keep) {
+      if (c.projectId !== p.id) continue;
+      const before = c.reqs.length;
+      c.reqs = c.reqs.filter(r => !ids.has(r.id));
+      if (before && !c.reqs.length) emptied.add(c);
+    }
+    const nextCols = [...keep.filter(c => !emptied.has(c)), ...fresh];
+    return { project: p, projects, cols: nextCols, created, envs: envs.length, reqs: fresh.reduce((n, c) => n + c.reqs.length, 0) };
   },
 };

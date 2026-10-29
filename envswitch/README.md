@@ -41,3 +41,11 @@ Einrichten unter **Einstellungen** (Rechtsklick aufs Icon → Optionen, oder im 
 - **Requests aufnehmen:** im Tab „API“ starten, durch die Seite klicken, stoppen, Auswahl in den API-Tester übernehmen.
 - **Umgebungen vergleichen:** gleicher Request an zwei Umgebungen mit Feld-für-Feld-Unterschieden (API-Tester), oder dieselbe Seite nebeneinander (Popup → Vergleichen).
 - **Daten löschen:** Cache, Storage, Service Worker und optional Cookies nur genau dieser Adresse. Andere Seiten und Logins bleiben unberührt.
+
+## Neu in 3.0
+
+- **Team-Konfiguration:** Projekt als `.envswitch.json` exportieren, ins Repo schreiben oder importieren (Datei/Link). Geheime Werte werden durch Variablen ersetzt; neue Versionen im Repo meldet das Popup.
+- **Englisch und Deutsch:** Sprache folgt Chrome, umstellbar unter Einstellungen → Allgemein.
+- **Einführung** beim ersten Installieren.
+- **Hilfsprogramm per npx:** `npx github:wendelinstadler/envswitch <ID>`, wird nach `~/.envswitch` bzw. `%LOCALAPPDATA%\EnvSwitch` kopiert.
+- Store-Unterlagen in `store/`, Datenschutz in `PRIVACY.md`, Build mit `npm run build`.

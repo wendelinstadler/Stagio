@@ -7,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const VERSION = 1;
+const VERSION = 2;
 
 /* ---------- Native Messaging: 4 Byte Länge (little endian) + JSON ---------- */
 
@@ -254,6 +254,27 @@ async function run(msg) {
   const found = detect(dir);
   if (!found) throw new Error(`Kein git- oder hg-Repo in ${dir}`);
   if (msg.op === 'detect') return found;
+  // Team-Datei: nur genau diese eine Datei im Repo-Hauptordner
+  if (msg.op === 'readTeam' || msg.op === 'writeTeam') {
+    const file = path.join(found.root, '.envswitch.json');
+    if (msg.op === 'readTeam') {
+      if (!fs.existsSync(file)) return { exists: false, root: found.root };
+      const st = fs.statSync(file);
+      if (st.size > 2 * 1024 * 1024) throw new Error('.envswitch.json ist grösser als 2 MB');
+      return { exists: true, root: found.root, text: fs.readFileSync(file, 'utf8') };
+    }
+    const text = String(msg.text ?? '');
+    if (text.length > 2 * 1024 * 1024) throw new Error('Zu gross');
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error('Kein gültiges JSON');
+    }
+    if (data?.envswitch !== 1) throw new Error('Keine EnvSwitch-Team-Datei');
+    fs.writeFileSync(file, text.endsWith('\n') ? text : text + '\n', 'utf8');
+    return { written: file };
+  }
   if (!ACTIONS.includes(msg.op)) throw new Error(`Unbekannte Aktion: ${msg.op}`);
   const impl = found.vcs === 'git' ? git : hg;
   const bin = (msg.bins && msg.bins[found.vcs]) || found.vcs;
