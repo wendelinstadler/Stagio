@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "EnvSwitch"
+    "message": "Stagio"
   },
   "extDesc": {
     "message": "Wechselt zwischen lokaler, Test- und Live-Umgebung, testet APIs im Swagger-Stil, sammelt Seitenfehler und verwaltet git/hg-Branches pro Projekt."

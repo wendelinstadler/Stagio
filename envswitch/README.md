@@ -1,4 +1,4 @@
-# EnvSwitch
+# Stagio
 
 Chrome-Extension für Projekte mit mehreren Umgebungen (Lokal, Test, Prod):
 
@@ -44,8 +44,8 @@ Einrichten unter **Einstellungen** (Rechtsklick aufs Icon → Optionen, oder im 
 
 ## Neu in 3.0
 
-- **Team-Konfiguration:** Projekt als `.envswitch.json` exportieren, ins Repo schreiben oder importieren (Datei/Link). Geheime Werte werden durch Variablen ersetzt; neue Versionen im Repo meldet das Popup.
+- **Team-Konfiguration:** Projekt als `.stagio.json` exportieren, ins Repo schreiben oder importieren (Datei/Link). Geheime Werte werden durch Variablen ersetzt; neue Versionen im Repo meldet das Popup.
 - **Englisch und Deutsch:** Sprache folgt Chrome, umstellbar unter Einstellungen → Allgemein.
 - **Einführung** beim ersten Installieren.
-- **Hilfsprogramm per npx:** `npx github:wendelinstadler/envswitch <ID>`, wird nach `~/.envswitch` bzw. `%LOCALAPPDATA%\EnvSwitch` kopiert.
+- **Hilfsprogramm per npx:** `npx stagio-helper <ID>`, wird nach `~/.stagio` bzw. `%LOCALAPPDATA%\Stagio` kopiert.
 - Store-Unterlagen in `store/`, Datenschutz in `PRIVACY.md`, Build mit `npm run build`.

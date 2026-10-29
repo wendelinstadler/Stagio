@@ -182,7 +182,7 @@ async function ping() {
 }
 $('ping').addEventListener('click', ping);
 
-const cmd = `npx github:wendelinstadler/envswitch ${chrome.runtime.id}`;
+const cmd = `npx stagio-helper ${chrome.runtime.id}`;
 $('cmd').textContent = cmd;
 $('cmd2').textContent = `node install.js ${chrome.runtime.id}`;
 $('extId').textContent = chrome.runtime.id;
@@ -423,3 +423,7 @@ Promise.all([VCS.get(), LS.projects()]).then(([v, p]) => {
   ping();
   if (location.hash === '#repos') document.getElementById('repos').scrollIntoView();
 });
+
+$('supportBtn').href = LINKS.support;
+$('siteLink').href = LINKS.site;
+$('privacyLink').href = LINKS.privacy;

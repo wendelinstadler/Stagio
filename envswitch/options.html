@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EnvSwitch Einstellungen</title>
+<title>Stagio Einstellungen</title>
 <link rel="icon" href="icons/48.png">
 <style>
   :root { --bg:#fff; --fg:#1c1c1e; --muted:#6b6b70; --line:#e2e2e6; --accent:#1a73e8; --soft:#f1f3f6; --bad:#b3261e; --ok:#188038; }
@@ -62,11 +62,14 @@
   textarea { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:12px ui-monospace,Consolas,monospace; resize:vertical; }
   .herr { color:var(--bad); font-size:12px; }
   @media (max-width:560px) { .envh { grid-template-columns:minmax(0,1fr); } }
+  .support { display:flex; align-items:center; gap:14px; background:color-mix(in srgb, #ffdd00 14%, var(--bg)); }
+  a.btn { text-decoration:none; }
+  a { color:var(--accent); }
 </style>
 </head>
 <body>
 <main>
-  <header><img src="icons/48.png" alt=""><h1>EnvSwitch Einstellungen</h1></header>
+  <header><img src="icons/48.png" alt=""><h1>Stagio Einstellungen</h1></header>
 
   <section>
     <h2>Allgemein</h2>
@@ -81,11 +84,11 @@
 
   <section>
     <h2>Team-Konfiguration teilen</h2>
-    <div class="muted">Ein Projekt als <code>.envswitch.json</code> exportieren und ins Projekt-Repo legen. Kolleginnen und Kollegen importieren die Datei und haben dieselben Umgebungen, Seiten, Header-Presets und Requests. Variablen (Tokens) bleiben lokal, geheime Header-Werte werden durch <code>{{variablen}}</code> ersetzt. Ist der Branch Manager eingerichtet, meldet das Popup neue Versionen aus dem Repo.</div>
+    <div class="muted">Ein Projekt als <code>.stagio.json</code> exportieren und ins Projekt-Repo legen. Kolleginnen und Kollegen importieren die Datei und haben dieselben Umgebungen, Seiten, Header-Presets und Requests. Variablen (Tokens) bleiben lokal, geheime Header-Werte werden durch <code>{{variablen}}</code> ersetzt. Ist der Branch Manager eingerichtet, meldet das Popup neue Versionen aus dem Repo.</div>
     <div class="row">
       <button class="ghost" id="teamFileBtn">Team-Datei importieren …</button>
       <input type="file" id="teamFile" accept=".json,application/json" hidden>
-      <input id="teamUrl" class="mono grow" placeholder="… oder Link, z. B. https://raw.githubusercontent.com/…/.envswitch.json" style="width:auto;min-width:240px">
+      <input id="teamUrl" class="mono grow" placeholder="… oder Link, z. B. https://raw.githubusercontent.com/…/.stagio.json" style="width:auto;min-width:240px">
       <button class="btn" id="teamUrlGo">Laden</button>
     </div>
     <div id="teamMsg" class="muted"></div>
@@ -153,6 +156,11 @@
       </label>
     </div>
   </section>
+  <section class="support">
+    <div class="grow"><h2>Gefällt dir Stagio?</h2><div class="muted">Stagio ist kostenlos. Mit einem Kaffee hilfst du, dass es weiterentwickelt wird.</div></div>
+    <a class="btn" id="supportBtn" target="_blank" rel="noopener noreferrer">☕ Kaffee spendieren</a>
+  </section>
+  <div class="muted" style="text-align:center"><a id="siteLink" target="_blank" rel="noopener noreferrer">stagio.dev</a> · <a id="privacyLink" target="_blank" rel="noopener noreferrer">Datenschutz</a></div>
 </main>
 <div id="toast" hidden></div>
 <script src="i18n.js"></script>

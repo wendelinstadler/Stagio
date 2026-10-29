@@ -1,4 +1,4 @@
-// API-Tester von EnvSwitch. Projekte und Umgebungen sind dieselben wie im Popup (Speicher "projects"),
+// API-Tester von Stagio. Projekte und Umgebungen sind dieselben wie im Popup (Speicher "projects"),
 // die Requests liegen in "apiCols" und gehören jeweils zu einem Projekt.
 const $ = id => document.getElementById(id);
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
@@ -96,7 +96,7 @@ function guard(live, question, action) {
 }
 
 // Zugriff auf eine Adresse erfragen. Muss direkt im Klick passieren (vor jedem await).
-// Die Adresse wird gemerkt, damit EnvSwitch den Zugriff nicht wieder abgibt, auch wenn sie in keinem Projekt steht.
+// Die Adresse wird gemerkt, damit Stagio den Zugriff nicht wieder abgibt, auch wenn sie in keinem Projekt steht.
 function allow(url) {
   const pat = LS.pattern(new URL(url).origin);
   if (!S.apiOrigins.includes(pat)) {
@@ -190,7 +190,7 @@ function renderSide() {
           h('div', { className: 'side-head' }, h('h2', {}, p.name), h('span', { className: 'grow' }), h('button', { className: 'link', onclick: () => editProject(p) }, 'Bearbeiten')),
           h('div', { className: 'envlist' }, p.envs.map((e, i) => envCard(p, e, i, e === cur))),
         ]
-      : h('div', { className: 'muted' }, 'Noch kein Projekt. Lege unten eines an, mit deinen Umgebungen wie Lokal, Test und Prod. Es erscheint auch im EnvSwitch-Popup.')
+      : h('div', { className: 'muted' }, 'Noch kein Projekt. Lege unten eines an, mit deinen Umgebungen wie Lokal, Test und Prod. Es erscheint auch im Stagio-Popup.')
   );
   const noProjects = !S.projects.length;
   $('form').hidden = !(formOpen || editing || noProjects);
@@ -322,7 +322,7 @@ $('cookies').addEventListener('change', () => {
 function renderMain() {
   const q = filter.trim().toLowerCase();
   if (!project()) {
-    put($('main'), h('div', { className: 'hero' }, h('h2', {}, 'Zuerst ein Projekt'), h('div', { className: 'muted' }, 'Lege links ein Projekt mit deinen Umgebungen an (oder im EnvSwitch-Popup). Danach reicht im Request ein Pfad wie /api/users, und oben wechselst du zwischen Lokal, Test und Prod.')));
+    put($('main'), h('div', { className: 'hero' }, h('h2', {}, 'Zuerst ein Projekt'), h('div', { className: 'muted' }, 'Lege links ein Projekt mit deinen Umgebungen an (oder im Stagio-Popup). Danach reicht im Request ein Pfad wie /api/users, und oben wechselst du zwischen Lokal, Test und Prod.')));
     return;
   }
   const sections = projCols().map(c => colSection(c, q)).filter(Boolean);
@@ -800,7 +800,7 @@ async function send(r, btn, resBox) {
   }
   const ok = await allow(req.url);
   if (!ok) {
-    showResponse(resBox, { error: `Ohne Zugriff auf ${req.url.host} kann EnvSwitch nichts senden. Beim nächsten Senden im Chrome-Dialog „Zulassen“ wählen.`, sent: req.url.href });
+    showResponse(resBox, { error: `Ohne Zugriff auf ${req.url.host} kann Stagio nichts senden. Beim nächsten Senden im Chrome-Dialog „Zulassen“ wählen.`, sent: req.url.href });
     return;
   }
 
@@ -969,7 +969,7 @@ function openImport() {
 $('openImport').addEventListener('click', openImport);
 $('importCancel').addEventListener('click', () => $('importDlg').close());
 
-const KIND = { curl: 'cURL', postman: 'Postman-Collection', har: 'HAR-Datei', openapi: 'OpenAPI/Swagger', backup: 'EnvSwitch-Backup' };
+const KIND = { curl: 'cURL', postman: 'Postman-Collection', har: 'HAR-Datei', openapi: 'OpenAPI/Swagger', backup: 'Stagio-Backup' };
 const showKind = () => {
   const d = AP.detect($('specText').value);
   $('specKind').textContent = $('specText').value.trim() ? (d ? `Erkannt: ${KIND[d.kind]}` : 'Format nicht erkannt') : '';
@@ -1232,8 +1232,8 @@ function importSpec(spec, src) {
 
 $('exportBtn').addEventListener('click', async () => {
   const { marker } = await chrome.storage.local.get('marker');
-  const data = JSON.stringify({ app: 'EnvSwitch', version: 2, projects: S.projects, apiCols: S.cols, marker: marker !== false }, null, 2);
-  const a = h('a', { href: URL.createObjectURL(new Blob([data], { type: 'application/json' })), download: `envswitch-backup-${new Date().toISOString().slice(0, 10)}.json` });
+  const data = JSON.stringify({ app: 'Stagio', version: 2, projects: S.projects, apiCols: S.cols, marker: marker !== false }, null, 2);
+  const a = h('a', { href: URL.createObjectURL(new Blob([data], { type: 'application/json' })), download: `stagio-backup-${new Date().toISOString().slice(0, 10)}.json` });
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
@@ -1246,7 +1246,7 @@ $('importFile').addEventListener('change', async () => {
     const d = JSON.parse(await file.text());
     let projects = [];
     let cols = [];
-    if (d.app === 'EnvSwitch') {
+    if (d.app === 'Stagio' || d.app === 'EnvSwitch') {
       projects = d.projects ?? [];
       cols = d.apiCols ?? [];
     } else if (d.app === 'ApiPeek') {
@@ -1260,7 +1260,7 @@ $('importFile').addEventListener('change', async () => {
         projectId: p.id,
         reqs: c.reqs.map(r => ({ ...r, path: base && !/^https?:/i.test(r.path) && !r.path.startsWith(base) ? base + (r.path.startsWith('/') ? '' : '/') + r.path : r.path })),
       }));
-    } else throw new Error('Das ist kein EnvSwitch-Backup.');
+    } else throw new Error('Das ist kein Stagio-Backup.');
     const pIds = new Set(S.projects.map(p => p.id));
     const cIds = new Set(S.cols.map(c => c.id));
     projects = projects.filter(p => !pIds.has(p.id));

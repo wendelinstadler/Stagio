@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// EnvSwitch-Hilfsprogramm: führt für die Extension git- und hg-Befehle aus (Chrome Native Messaging).
+// Stagio-Hilfsprogramm: führt für die Extension git- und hg-Befehle aus (Chrome Native Messaging).
 // Sicherheit: Es gibt nur eine feste Liste von Aktionen, Befehle laufen ohne Shell, Branch-Namen werden geprüft.
 'use strict';
 const { execFile } = require('child_process');
@@ -7,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const VERSION = 2;
+const VERSION = 3;
 
 /* ---------- Native Messaging: 4 Byte Länge (little endian) + JSON ---------- */
 
@@ -256,11 +256,17 @@ async function run(msg) {
   if (msg.op === 'detect') return found;
   // Team-Datei: nur genau diese eine Datei im Repo-Hauptordner
   if (msg.op === 'readTeam' || msg.op === 'writeTeam') {
-    const file = path.join(found.root, '.envswitch.json');
+    const file = path.join(found.root, '.stagio.json');
     if (msg.op === 'readTeam') {
+      // Ältere Repos haben noch .envswitch.json
+      const legacy = path.join(found.root, '.envswitch.json');
+      if (!fs.existsSync(file) && fs.existsSync(legacy)) {
+        if (fs.statSync(legacy).size > 2 * 1024 * 1024) throw new Error('.stagio.json ist grösser als 2 MB');
+        return { exists: true, root: found.root, text: fs.readFileSync(legacy, 'utf8') };
+      }
       if (!fs.existsSync(file)) return { exists: false, root: found.root };
       const st = fs.statSync(file);
-      if (st.size > 2 * 1024 * 1024) throw new Error('.envswitch.json ist grösser als 2 MB');
+      if (st.size > 2 * 1024 * 1024) throw new Error('.stagio.json ist grösser als 2 MB');
       return { exists: true, root: found.root, text: fs.readFileSync(file, 'utf8') };
     }
     const text = String(msg.text ?? '');
@@ -271,7 +277,7 @@ async function run(msg) {
     } catch {
       throw new Error('Kein gültiges JSON');
     }
-    if (data?.envswitch !== 1) throw new Error('Keine EnvSwitch-Team-Datei');
+    if (data?.stagio !== 1 && data?.envswitch !== 1) throw new Error('Keine Stagio-Team-Datei');
     fs.writeFileSync(file, text.endsWith('\n') ? text : text + '\n', 'utf8');
     return { written: file };
   }

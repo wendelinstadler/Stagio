@@ -73,6 +73,6 @@ end.writeUInt32LE(cenBuf.length, 12);
 end.writeUInt32LE(offset, 16);
 
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
-const out = path.join(root, 'dist', `envswitch-${version}.zip`);
+const out = path.join(root, 'dist', `stagio-${version}.zip`);
 fs.writeFileSync(out, Buffer.concat([...parts, cenBuf, end]));
 console.log(`${files.length} Dateien -> ${path.relative(root, out)}`);

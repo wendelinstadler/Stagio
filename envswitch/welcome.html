@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Willkommen bei EnvSwitch</title>
+<title>Willkommen bei Stagio</title>
 <link rel="icon" href="icons/48.png">
 <style>
   :root { --bg:#fff; --fg:#1c1c1e; --muted:#6b6b70; --line:#e2e2e6; --accent:#1a73e8; --soft:#f1f3f6; --bad:#b3261e; --ok:#188038; }
@@ -39,6 +39,7 @@
   .feat b { display:block; margin-bottom:2px; }
   .feat span { color:var(--muted); font-size:13px; }
   code { font:12px ui-monospace,Consolas,monospace; }
+  a { color:var(--accent); }
 </style>
 </head>
 <body>
@@ -46,7 +47,7 @@
   <div class="hero">
     <img src="icons/128.png" alt="">
     <div>
-      <h1>Willkommen bei EnvSwitch</h1>
+      <h1>Willkommen bei Stagio</h1>
       <p>Wechsle mit einem Klick zwischen Lokal, Test und Live, teste APIs und sieh die Fehler deiner Seiten.</p>
     </div>
     <select id="lang" title="Sprache"><option value="auto">Automatisch</option><option value="de">Deutsch</option><option value="en">English</option></select>
@@ -54,7 +55,7 @@
 
   <div class="card">
     <div class="step"><span class="num">1</span><h2>Icon anheften</h2></div>
-    <div class="muted">Klick oben rechts in Chrome auf das Puzzle-Symbol und hefte EnvSwitch an. So ist das Popup immer einen Klick entfernt.</div>
+    <div class="muted">Klick oben rechts in Chrome auf das Puzzle-Symbol und hefte Stagio an. So ist das Popup immer einen Klick entfernt.</div>
   </div>
 
   <div class="card">
@@ -83,7 +84,8 @@ Prod = https://www.example.com</textarea></label>
     </div>
   </div>
 
-  <div class="muted" style="text-align:center">Alle Daten bleiben auf deinem Computer. EnvSwitch sendet nichts an andere Server.</div>
+  <div class="muted" style="text-align:center">Alle Daten bleiben auf deinem Computer. Stagio sendet nichts an andere Server.</div>
+  <div class="muted" style="text-align:center">Stagio ist kostenlos. <a id="supportLink" target="_blank" rel="noopener noreferrer">☕ Unterstützen</a> · <a id="siteLink" target="_blank" rel="noopener noreferrer">stagio.dev</a></div>
 </main>
 <script src="i18n.js"></script>
 <script src="common.js"></script>

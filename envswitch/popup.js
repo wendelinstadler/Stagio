@@ -1171,3 +1171,22 @@ async function checkTeam(projects) {
       .catch(() => {});
   }
 }
+
+// ---------- Website und Unterstützen ----------
+$('siteLink').href = LINKS.site;
+$('supportLink').href = LINKS.support;
+
+// Nach einer Weile einmal freundlich fragen (nur ein Mal, wegklickbar)
+chrome.storage.local.get(['opens', 'nudgeDone']).then(({ opens = 0, nudgeDone }) => {
+  chrome.storage.local.set({ opens: opens + 1 });
+  if (nudgeDone || opens + 1 < 40) return;
+  const close = h('button', { title: 'Schliessen' }, '×');
+  const box = h('div', { className: 'nudge' }, h('span', {}, 'Gefällt dir Stagio?'), h('a', { href: LINKS.support, target: '_blank', rel: 'noopener noreferrer' }, '☕ Spendier einen Kaffee'), close);
+  const done = () => {
+    chrome.storage.local.set({ nudgeDone: true });
+    box.remove();
+  };
+  close.addEventListener('click', done);
+  box.querySelector('a').addEventListener('click', done);
+  $('nudge').append(box);
+});

@@ -1,4 +1,11 @@
 globalThis.T ??= s => s;
+
+// Links an einer Stelle: Website und Unterstützen-Seite (Buy Me a Coffee)
+globalThis.LINKS = {
+  site: 'https://stagio.dev',
+  privacy: 'https://stagio.dev/privacy.html',
+  support: 'https://buymeacoffee.com/wendelinstadler',
+};
 // Gemeinsame Logik für Popup, Service Worker und Seiten-Markierung.
 // Alle Daten bleiben in chrome.storage.local, also nur auf diesem Computer.
 globalThis.LS = {
@@ -492,7 +499,7 @@ AP.parseHar = (har, project) => {
   return reqs;
 };
 
-// Welches Format ist das? 'openapi' | 'postman' | 'har' | 'curl' | 'envswitch' | null
+// Welches Format ist das? 'openapi' | 'postman' | 'har' | 'curl' | 'backup' | null
 AP.detect = text => {
   const t = String(text ?? '').trim();
   if (/^curl(\.exe)?\s/m.test(t) && !/^\s*[{[]/.test(t)) return { kind: 'curl', data: t };
@@ -506,13 +513,13 @@ AP.detect = text => {
   if (j.log?.entries) return { kind: 'har', data: j };
   if (Array.isArray(j.item) && (j.info?._postman_id || /postman/i.test(j.info?.schema ?? '') || j.info)) return { kind: 'postman', data: j };
   if (j.collection?.item) return { kind: 'postman', data: j.collection };
-  if (j.app === 'EnvSwitch' || j.app === 'ApiPeek') return { kind: 'backup', data: j };
+  if (j.app === 'Stagio' || j.app === 'EnvSwitch' || j.app === 'ApiPeek') return { kind: 'backup', data: j };
   return null;
 };
 
 // ---------- Branch Manager (git und hg über das Hilfsprogramm) ----------
 globalThis.VCS = {
-  HOST: 'com.envswitch.vcs',
+  HOST: 'com.stagio.helper',
 
   DEFAULTS: {
     features: { branch: true, switch: true, sync: true, log: true },
@@ -652,11 +659,11 @@ globalThis.HEALTH = {
   },
 };
 
-// ---------- Team-Konfiguration (.envswitch.json) ----------
+// ---------- Team-Konfiguration (.stagio.json) ----------
 // Projekt, Umgebungen, Seiten, Header-Presets und API-Sammlungen als Datei fürs Projekt-Repo.
 // Nie drin: Variablen (Tokens) und persönliche Einstellungen. Geheime Header-Werte werden durch {{variablen}} ersetzt.
 globalThis.TEAM = {
-  FILE: '.envswitch.json',
+  FILE: '.stagio.json',
   SECRET: /^(authorization|proxy-authorization|cookie)$|api[_-]?key|token|secret|passw|session|^x-auth/i,
 
   // Kurzer Fingerabdruck, um Änderungen zu erkennen
@@ -707,7 +714,7 @@ globalThis.TEAM = {
         })),
       }));
     const data = {
-      envswitch: 1,
+      stagio: 1,
       key: project.teamKey,
       name: project.name,
       health: project.health || undefined,
@@ -725,7 +732,8 @@ globalThis.TEAM = {
     } catch {
       throw new Error('Die Datei ist kein gültiges JSON.');
     }
-    if (d?.envswitch !== 1) throw new Error('Das ist keine EnvSwitch-Team-Datei (.envswitch.json).');
+    // .envswitch.json aus älteren Versionen wird weiter akzeptiert
+    if (d?.stagio !== 1 && d?.envswitch !== 1) throw new Error('Das ist keine Stagio-Team-Datei (.stagio.json).');
     if (!d.name || !Array.isArray(d.envs) || !d.envs.length) throw new Error('In der Team-Datei fehlen Name oder Umgebungen.');
     for (const e of d.envs) {
       if (!e?.name || !e.origin) throw new Error('Jede Umgebung braucht name und origin.');

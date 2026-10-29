@@ -1,4 +1,4 @@
-// Läuft in der Seite selbst und meldet JavaScript-Fehler und console.error an EnvSwitch.
+// Läuft in der Seite selbst und meldet JavaScript-Fehler und console.error an Stagio.
 // Verändert nichts an der Seite: console.error funktioniert danach genau wie vorher.
 (() => {
   if (window.__envswitchErrors) return;

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Branch helper – Stagio</title>
+<link rel="icon" href="img/favicon.png">
+<link rel="stylesheet" href="style.css">
+<script src="lang.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="logo" href="./"><img src="img/icon.png" alt="">Stagio</a>
+    <span class="sp"></span>
+    <button id="langBtn">Deutsch</button>
+  </nav>
+  <div class="doc">
+    <div class="en">
+      <h1>Set up the branch helper</h1>
+      <p>Chrome extensions may not run programs on your computer. For the Branch Manager (git and Mercurial), Stagio uses a small local helper. Everything else works without it.</p>
+      <h2>1. Install Node.js</h2>
+      <p>You need <a href="https://nodejs.org" target="_blank" rel="noopener">Node.js</a> 18 or newer. Check with <code>node -v</code> in a terminal.</p>
+      <h2>2. Run one command</h2>
+      <p>Open Stagio → Settings → Branch Manager and copy the command. It contains your extension ID:</p>
+      <pre>npx stagio-helper &lt;your-extension-id&gt;</pre>
+      <p>Works on macOS, Windows and Linux, for Chrome, Edge, Brave and Chromium. Run it on every computer you use.</p>
+      <h2>3. Check the connection</h2>
+      <p>Click <b>Check connection</b> in the settings. If it does not work, quit Chrome completely once and reopen it.</p>
+      <h2>What the helper may do</h2>
+      <p>Only inside folders that are git or hg repositories: status, list branches, recent commits, switch and create branches, pull, push, fetch, and read/write <code>.stagio.json</code>. No shell, validated branch names, never waits for a password.</p>
+      <p>Uninstall: <code>npx stagio-helper --uninstall</code></p>
+    </div>
+    <div class="de">
+      <h1>Hilfsprogramm einrichten</h1>
+      <p>Chrome-Extensions dürfen keine Programme auf deinem Computer starten. Für den Branch Manager (git und Mercurial) nutzt Stagio ein kleines lokales Hilfsprogramm. Alles andere funktioniert ohne.</p>
+      <h2>1. Node.js installieren</h2>
+      <p>Du brauchst <a href="https://nodejs.org" target="_blank" rel="noopener">Node.js</a> 18 oder neuer. Prüfen mit <code>node -v</code> im Terminal.</p>
+      <h2>2. Einen Befehl ausführen</h2>
+      <p>Öffne Stagio → Einstellungen → Branch Manager und kopiere den Befehl. Er enthält deine Extension-ID:</p>
+      <pre>npx stagio-helper &lt;deine-extension-id&gt;</pre>
+      <p>Funktioniert auf macOS, Windows und Linux, für Chrome, Edge, Brave und Chromium. Auf jedem Computer einmal ausführen.</p>
+      <h2>3. Verbindung prüfen</h2>
+      <p>In den Einstellungen auf <b>Verbindung prüfen</b> klicken. Klappt es nicht, Chrome einmal ganz schliessen und neu öffnen.</p>
+      <h2>Was das Hilfsprogramm darf</h2>
+      <p>Nur in Ordnern, die git- oder hg-Repos sind: Status, Branches auflisten, letzte Commits, Branches wechseln und erstellen, Pull, Push, Fetch sowie <code>.stagio.json</code> lesen und schreiben. Ohne Shell, mit geprüften Branch-Namen, wartet nie auf ein Passwort.</p>
+      <p>Entfernen: <code>npx stagio-helper --uninstall</code></p>
+    </div>
+  </div>
+  <footer><a href="./">← Stagio</a></footer>
+</div>
+</body>
+</html>

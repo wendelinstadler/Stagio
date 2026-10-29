@@ -28,10 +28,13 @@ $('form').addEventListener('submit', async ev => {
   await LS.save(projects);
   await asked;
   $('msg').className = 'ok';
-  $('msg').textContent = '✓ Projekt angelegt. Öffne jetzt deine Seite und klick auf das EnvSwitch-Icon.';
+  $('msg').textContent = '✓ Projekt angelegt. Öffne jetzt deine Seite und klick auf das Stagio-Icon.';
   $('form').reset();
   $('envs').value = '';
 });
 
 $('openApi').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-api' }));
 $('openOptions').addEventListener('click', () => chrome.runtime.openOptionsPage());
+
+$('supportLink').href = LINKS.support;
+$('siteLink').href = LINKS.site;

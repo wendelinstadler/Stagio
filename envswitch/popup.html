@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>EnvSwitch</title>
+<title>Stagio</title>
 <style>
   :root { --bg:#fff; --fg:#1c1c1e; --muted:#6b6b70; --line:#e2e2e6; --accent:#1a73e8; --soft:#f1f3f6; --bad:#b3261e; }
   @media (prefers-color-scheme: dark) {
@@ -42,6 +42,10 @@
   .note { display:flex; gap:8px; justify-content:space-between; align-items:baseline; }
   footer a { color:var(--muted); }
   footer a:hover { color:var(--accent); }
+  .foot { display:flex; justify-content:center; gap:8px; }
+  .nudge { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; background:color-mix(in srgb, #ffdd00 22%, var(--bg)); font-size:12px; }
+  .nudge a { color:var(--fg); font-weight:600; }
+  .nudge button { margin-left:auto; border:0; background:none; color:var(--muted); font-size:15px; cursor:pointer; }
   button.plain { padding:0; margin-top:6px; color:var(--accent); }
   /* Schnell-Requests */
   #quick:empty { display:none; }
@@ -173,7 +177,7 @@
 </head>
 <body>
 <header class="bar">
-  <span class="brand" title="EnvSwitch"><img src="icons/48.png" alt="EnvSwitch"></span>
+  <span class="brand" title="Stagio"><img src="icons/48.png" alt="Stagio"></span>
   <nav id="tabs" class="tabs" role="tablist"></nav>
   <button class="icon" id="api" title="API-Tester im grossen Fenster öffnen">↗</button>
 </header>
@@ -234,7 +238,8 @@
 <section id="logBox"></section>
 </div>
 
-<footer class="muted" style="text-align:center"><a href="https://github.com/wendelinstadler/envswitch" target="_blank" rel="noopener noreferrer">EnvSwitch auf GitHub</a></footer>
+<div id="nudge"></div>
+<footer class="muted foot"><a id="siteLink" target="_blank" rel="noopener noreferrer">stagio.dev</a><span>·</span><a id="supportLink" target="_blank" rel="noopener noreferrer">☕ Stagio unterstützen</a></footer>
 <script src="i18n.js"></script>
 <script src="common.js"></script>
 <script src="popup.js"></script>

@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-> Name: the name „envSwitch“ is already taken in the Chrome Web Store. Pick a final name before publishing (change `extName` in `envswitch/_locales/*/messages.json`).
+> Name: **Stagio** · Website: https://stagio.dev · Privacy policy URL: https://stagio.dev/privacy.html · Support: https://buymeacoffee.com/wendelinstadler
 
 **Category:** Developer Tools · **Language:** English (+ German)
 
@@ -12,7 +12,7 @@ DE: Mit einem Klick zwischen Lokal, Test und Live wechseln. API-Tester, Fehler-L
 
 ## Detailed description (EN)
 
-EnvSwitch is the toolbox for web developers who work with several environments of the same project.
+Stagio is the toolbox for web developers who work with several environments of the same project.
 
 ENVIRONMENTS
 • Open the same page on Local, Test or Live in one click (keeps path and parameters)
@@ -36,7 +36,7 @@ DEBUGGING
 • View the same page from two environments side by side (desktop, tablet, mobile)
 
 TEAMS
-• Share a project as .envswitch.json in your repository; secrets are replaced by variables
+• Share a project as .stagio.json in your repository; secrets are replaced by variables
 
 BRANCHES (optional)
 • git and Mercurial per project: current branch, status, pull/push, switch with search, new branch from a ticket number, recent commits
@@ -47,7 +47,7 @@ All data stays on your computer. No analytics, no tracking, no external servers.
 
 ## Detaillierte Beschreibung (DE)
 
-EnvSwitch ist der Werkzeugkasten für Webentwickler, die mit mehreren Umgebungen desselben Projekts arbeiten.
+Stagio ist der Werkzeugkasten für Webentwickler, die mit mehreren Umgebungen desselben Projekts arbeiten.
 
 UMGEBUNGEN
 • Dieselbe Seite mit einem Klick auf Lokal, Test oder Live öffnen (Pfad und Parameter bleiben)
@@ -71,7 +71,7 @@ FEHLERSUCHE
 • Dieselbe Seite aus zwei Umgebungen nebeneinander ansehen
 
 TEAMS
-• Projekt als .envswitch.json im Repo teilen; Geheimnisse werden durch Variablen ersetzt
+• Projekt als .stagio.json im Repo teilen; Geheimnisse werden durch Variablen ersetzt
 
 BRANCHES (optional)
 • git und Mercurial pro Projekt: aktueller Branch, Status, Pull/Push, wechseln, neuer Branch aus Ticket-Nummer, letzte Commits
@@ -99,7 +99,7 @@ A developer tool for working with the environments (local, test, production) of 
 | `cookies` | “Clear data”: removes cookies of exactly one host, only when the user ticks it. |
 | optional host permissions | Requested per address the user adds to a project (or explicitly records/tests). No access to other sites. |
 
-**Remote code:** none. **Data collection:** none (see PRIVACY.md).
+**Remote code:** none. **Data collection:** none (see https://stagio.dev/privacy.html).
 
 ## Assets
 

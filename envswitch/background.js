@@ -17,7 +17,7 @@ async function paint(tab) {
       await chrome.action.setBadgeBackgroundColor({ tabId: tab.id, color: rec || errors ? '#c5221f' : LS.color(m.env.name) });
       await chrome.action.setBadgeTextColor({ tabId: tab.id, color: '#ffffff' });
     }
-    await chrome.action.setTitle({ tabId: tab.id, title: ['EnvSwitch', m && `${m.project.name} · ${m.env.name}`, errors && T(`${errors} Fehler auf dieser Seite`), rec && T('Aufnahme läuft')].filter(Boolean).join('\n') });
+    await chrome.action.setTitle({ tabId: tab.id, title: ['Stagio', m && `${m.project.name} · ${m.env.name}`, errors && T(`${errors} Fehler auf dieser Seite`), rec && T('Aufnahme läuft')].filter(Boolean).join('\n') });
   } catch {
     /* Tab wurde inzwischen geschlossen */
   }

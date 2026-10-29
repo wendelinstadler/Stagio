@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stagio – Local, Test, Live in one click</title>
+<meta name="description" content="Chrome extension for web developers: switch between local, test and live, API tester, page error logs, header presets and git/hg branches per project.">
+<meta property="og:title" content="Stagio – Local, Test, Live in one click">
+<meta property="og:description" content="Switch environments, test APIs, see page errors. A Chrome extension for web developers.">
+<meta property="og:image" content="img/screenshot-1.png">
+<link rel="icon" href="img/favicon.png">
+<link rel="stylesheet" href="style.css">
+<script src="lang.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="logo" href="./"><img src="img/icon.png" alt="">Stagio</a>
+    <span class="sp"></span>
+    <a class="small" href="helper.html"><span class="en">Branch helper</span><span class="de">Hilfsprogramm</span></a>
+    <a class="small" href="privacy.html"><span class="en">Privacy</span><span class="de">Datenschutz</span></a>
+    <button id="langBtn">Deutsch</button>
+  </nav>
+
+  <div class="hero">
+    <div>
+      <h1><span class="en">Local, Test, Live.<br>One click.</span><span class="de">Lokal, Test, Live.<br>Ein Klick.</span></h1>
+      <p>
+        <span class="en">Stagio is the Chrome extension for web developers who work with several environments. Switch pages, test APIs, catch errors, manage branches – right in your browser.</span>
+        <span class="de">Stagio ist die Chrome-Extension für Webentwickler mit mehreren Umgebungen. Seiten wechseln, APIs testen, Fehler sehen, Branches verwalten – direkt im Browser.</span>
+      </p>
+      <div class="cta">
+        <a class="btn" data-store><span class="en">Add to Chrome – it’s free</span><span class="de">Zu Chrome hinzufügen – kostenlos</span></a>
+        <a class="btn coffee" data-support target="_blank" rel="noopener">☕ <span class="en">Buy me a coffee</span><span class="de">Kaffee spendieren</span></a>
+      </div>
+      <p class="note" style="margin-top:14px"><span class="en">No account. No tracking. Your data stays on your computer.</span><span class="de">Kein Konto. Kein Tracking. Deine Daten bleiben auf deinem Computer.</span></p>
+    </div>
+    <div class="shot narrow"><img src="img/screenshot-1.png" alt="Stagio popup"></div>
+  </div>
+
+  <section>
+    <h2><span class="en">Everything for your environments</span><span class="de">Alles für deine Umgebungen</span></h2>
+    <p class="lead"><span class="en">One project, many environments. Stagio knows which one you’re on and helps you not to mix them up.</span><span class="de">Ein Projekt, viele Umgebungen. Stagio weiss, wo du gerade bist, und hilft, sie nicht zu verwechseln.</span></p>
+    <div class="grid">
+      <div class="card"><b><span class="en">Switch in one click</span><span class="de">Wechseln mit einem Klick</span></b><span class="en">Same page on Local, Test or Live, with path and parameters. Color marker on every page.</span><span class="de">Dieselbe Seite auf Lokal, Test oder Live, mit Pfad und Parametern. Farbmarkierung auf jeder Seite.</span></div>
+      <div class="card"><b><span class="en">Protection for Live</span><span class="de">Schutz für Live</span></b><span class="en">Actions on production need a second click. Server status shows what’s up.</span><span class="de">Aktionen auf Produktion brauchen einen zweiten Klick. Der Server-Status zeigt, was läuft.</span></div>
+      <div class="card"><b><span class="en">Header presets</span><span class="de">Header-Presets</span></b><span class="en">X-Debug, auth tokens or cookies per environment, on and off in one click.</span><span class="de">X-Debug, Tokens oder Cookies pro Umgebung, mit einem Klick an und aus.</span></div>
+      <div class="card"><b><span class="en">Page errors</span><span class="de">Seitenfehler</span></b><span class="en">JavaScript errors and failed requests, with the count right on the icon.</span><span class="de">JavaScript-Fehler und fehlgeschlagene Requests, die Anzahl direkt auf dem Icon.</span></div>
+      <div class="card"><b><span class="en">Clean slate</span><span class="de">Sauber starten</span></b><span class="en">Clear cache, storage and cookies of exactly one environment. Nothing else.</span><span class="de">Cache, Storage und Cookies genau einer Umgebung löschen. Sonst nichts.</span></div>
+      <div class="card"><b><span class="en">Share with your team</span><span class="de">Mit dem Team teilen</span></b><span class="en">Put a .stagio.json in your repo. Secrets are replaced by variables.</span><span class="de">Eine .stagio.json ins Repo legen. Geheimnisse werden durch Variablen ersetzt.</span></div>
+    </div>
+  </section>
+
+  <section class="two">
+    <div>
+      <h2><span class="en">An API tester that knows your environments</span><span class="de">Ein API-Tester, der deine Umgebungen kennt</span></h2>
+      <p class="lead">
+        <span class="en">Swagger-style requests and responses. Import OpenAPI (it finds /v3/api-docs by itself), cURL, Postman or HAR. Send one request to two environments and see every field that differs. Record the API calls of a page with one click.</span>
+        <span class="de">Requests und Antworten im Swagger-Stil. OpenAPI importieren (findet /v3/api-docs selbst), cURL, Postman oder HAR. Einen Request an zwei Umgebungen senden und jedes geänderte Feld sehen. API-Aufrufe einer Seite mit einem Klick aufnehmen.</span>
+      </p>
+    </div>
+    <div class="shot"><img src="img/screenshot-2.png" alt="API tester"></div>
+  </section>
+
+  <section class="two">
+    <div class="shot narrow"><img src="img/screenshot-4.png" alt="Branches"></div>
+    <div>
+      <h2><span class="en">git and Mercurial, per project</span><span class="de">git und Mercurial, pro Projekt</span></h2>
+      <p class="lead">
+        <span class="en">See the current branch, status and unpushed commits. Pull, push, switch with search, or create a branch from a ticket number. Optional – needs a small helper, installed with one command.</span>
+        <span class="de">Aktueller Branch, Status und ungepushte Commits. Pull, Push, Wechseln mit Suche oder neuer Branch aus einer Ticket-Nummer. Optional – braucht ein kleines Hilfsprogramm, installiert mit einem Befehl.</span>
+      </p>
+      <a class="btn ghost" href="helper.html"><span class="en">Set up the helper</span><span class="de">Hilfsprogramm einrichten</span></a>
+    </div>
+  </section>
+
+  <section style="text-align:center">
+    <h2><span class="en">Free, and it stays that way</span><span class="de">Kostenlos, und das bleibt so</span></h2>
+    <p class="lead" style="margin:0 auto 22px"><span class="en">If Stagio saves you time, a coffee helps keep it going.</span><span class="de">Wenn dir Stagio Zeit spart, hilft ein Kaffee, dass es weitergeht.</span></p>
+    <a class="btn coffee" data-support target="_blank" rel="noopener">☕ <span class="en">Buy me a coffee</span><span class="de">Kaffee spendieren</span></a>
+  </section>
+
+  <footer>
+    <span>© 2026 Stagio</span>
+    <a href="privacy.html"><span class="en">Privacy</span><span class="de">Datenschutz</span></a>
+    <a href="helper.html"><span class="en">Branch helper</span><span class="de">Hilfsprogramm</span></a>
+    <a href="mailto:hello@stagio.dev">hello@stagio.dev</a>
+  </footer>
+</div>
+</body>
+</html>

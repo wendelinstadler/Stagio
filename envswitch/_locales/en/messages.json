@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "EnvSwitch"
+    "message": "Stagio"
   },
   "extDesc": {
     "message": "Switch between local, test and live environments, test APIs Swagger-style, collect page errors and manage git/hg branches per project."
