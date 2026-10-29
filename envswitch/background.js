@@ -76,7 +76,7 @@ chrome.runtime.onMessage.addListener((m, _sender, reply) => {
     return true;
   }
   if (m?.type === 'open-api') {
-    openApi(m.url, m.projectId).then(() => reply({ ok: true }));
+    openApi(m.url, m.projectId, undefined, m.reqId).then(() => reply({ ok: true }));
     return true;
   }
   if (m?.type !== 'open') return false;
@@ -122,9 +122,9 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
 
 // Öffnet den API-Tester als Tab (oder holt den offenen nach vorne). Die aktuelle Seite wird mitgegeben,
 // damit dort gleich das passende Projekt und die Umgebung gewählt sind.
-async function openApi(url, projectId, tab) {
+async function openApi(url, projectId, tab, reqId) {
   const fromPage = /^https?:/i.test(url || '') ? url : null;
-  await chrome.storage.local.set({ ...(fromPage ? { from: fromPage } : {}), apiOpen: { url: fromPage, projectId: projectId ?? null, at: Date.now() } });
+  await chrome.storage.local.set({ ...(fromPage ? { from: fromPage } : {}), apiOpen: { url: fromPage, projectId: projectId ?? null, reqId: reqId ?? null, at: Date.now() } });
   const app = chrome.runtime.getURL('app.html');
   const [ctx] = await chrome.runtime.getContexts({ contextTypes: ['TAB'], documentUrls: [app] });
   if (ctx) {

@@ -14,6 +14,7 @@ Chrome-Extension für Projekte mit mehreren Umgebungen (Lokal, Test, Prod):
 - „API-Doku suchen“ findet `/v3/api-docs` (Spring Boot/springdoc), `/swagger.json` usw. und importiert alle Endpoints; jeder Tag wird eine Sammlung
 - Als cURL kopieren, Sammlungen, Suche, Backup als JSON (auch alte ApiPeek-Backups)
 - Live-Schutz: POST/PUT/PATCH/DELETE auf Prod/Live braucht einen zweiten Klick
+- **Schnell-Requests im Popup:** Request im API-Tester mit ☆ markieren, dann im Popup mit einem Klick senden (Umgebung wählbar, Antwort direkt sichtbar)
 
 Für den API-Tester lässt sich unter `chrome://extensions/shortcuts` ein eigenes Tastenkürzel setzen (Chrome erlaubt nur vier vorgegebene, die braucht der Umgebungswechsel).
 

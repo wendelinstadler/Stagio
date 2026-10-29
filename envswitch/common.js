@@ -224,6 +224,50 @@ globalThis.AP = {
     return [...new Set([...String(path ?? '').matchAll(/(?<!\{)\{([A-Za-z_][\w.-]*)\}(?!\})/g)].map(m => m[1]))];
   },
 
+  // Baut aus einem gespeicherten Request die echte Anfrage (URL, Header, Body) für eine Umgebung.
+  build(r, env, cookies = true) {
+    const miss = new Set();
+    const sub = s => AP.fill(s, env, miss);
+
+    let path = String(r.path ?? '').trim();
+    path = path.replace(/(?<!\{)\{([A-Za-z_][\w.-]*)\}(?!\})/g, (m, n) => {
+      const v = sub(r.pathVals?.[n] ?? '');
+      return v ? encodeURIComponent(v) : m;
+    });
+    path = sub(path);
+
+    let url;
+    if (/^https?:\/\//i.test(path)) url = new URL(path);
+    else {
+      if (!env) throw new Error('Keine Umgebung gewählt: links ein Projekt anlegen und oben eine Umgebung wählen, oder eine volle Adresse mit https:// eingeben.');
+      url = new URL(env.origin + '/' + path.replace(/^\/+/, ''));
+    }
+    for (const p of r.params ?? []) if (p.on !== false && p.k.trim()) url.searchParams.append(sub(p.k).trim(), sub(p.v));
+
+    const headers = new Headers();
+    for (const p of r.headers ?? []) {
+      if (p.on === false || !p.k.trim()) continue;
+      try {
+        headers.set(sub(p.k).trim(), sub(p.v));
+      } catch {
+        throw new Error(`Ungültiger Header: ${p.k}`);
+      }
+    }
+
+    const init = { method: r.method, headers, credentials: cookies ? 'include' : 'omit', redirect: 'follow', cache: 'no-store' };
+    const b = r.body;
+    if (!['GET', 'HEAD'].includes(r.method) && b && b.mode !== 'none' && b.text.trim()) {
+      if (b.mode === 'form') {
+        init.body = new URLSearchParams(Object.entries(AP.parseVars(sub(b.text)))).toString();
+        if (!headers.has('content-type')) headers.set('content-type', 'application/x-www-form-urlencoded');
+      } else {
+        init.body = sub(b.text);
+        if (!headers.has('content-type')) headers.set('content-type', b.mode === 'json' ? 'application/json' : 'text/plain;charset=UTF-8');
+      }
+    }
+    return { url, init, miss: [...miss] };
+  },
+
   // Beim Bearbeiten eines Projekts die Variablen der gleichnamigen Umgebungen behalten.
   keepVars(oldEnvs, newEnvs) {
     for (const e of newEnvs) {
@@ -233,3 +277,12 @@ globalThis.AP = {
     return newEnvs;
   },
 };
+
+// Gemeinsame Anzeige-Helfer für Popup und API-Tester
+AP.STATUS = {
+  200: 'OK', 201: 'Created', 202: 'Accepted', 204: 'No Content', 301: 'Moved Permanently', 302: 'Found', 304: 'Not Modified',
+  400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 405: 'Method Not Allowed', 409: 'Conflict',
+  415: 'Unsupported Media Type', 422: 'Unprocessable Entity', 429: 'Too Many Requests', 500: 'Internal Server Error',
+  502: 'Bad Gateway', 503: 'Service Unavailable', 504: 'Gateway Timeout',
+};
+AP.fmtMs = ms => (ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`);

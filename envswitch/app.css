@@ -177,3 +177,8 @@ dialog::backdrop { background:rgba(0,0,0,.35); }
 #projectSel { width:auto; max-width:220px; font-weight:600; }
 .env label.f textarea { margin-top:2px; }
 [hidden]:not(.x) { display:none !important; }
+
+/* Stern: Request im Popup anzeigen */
+.star { flex:none; width:26px; height:26px; padding:0; border:0; border-radius:4px; background:none; color:var(--muted); font-size:16px; line-height:1; }
+.star:hover { background:color-mix(in srgb, var(--m) 18%, transparent); color:#f5b400; }
+.star.on { color:#f5b400; }

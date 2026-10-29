@@ -219,6 +219,8 @@ async function render() {
     }
   }
 
+  renderQuick(projects, m);
+
   const gaps = $('marker').checked ? await Promise.all(projects.map(p => missing(p.envs))) : projects.map(() => []);
   $('list').replaceChildren(...projects.map((p, i) => projectCard(p, gaps[i])));
 }
@@ -276,3 +278,137 @@ Promise.all([chrome.tabs.query({ active: true, currentWindow: true }), chrome.st
   $('marker').checked = s.marker !== false;
   render();
 });
+
+// ---------- Schnell-Requests (im API-Tester mit ★ markiert) ----------
+
+const qEnv = {}; // gewählte Umgebung pro Projekt, nur solange das Popup offen ist
+const qRes = new Map(); // letzte Antwort pro Request
+
+async function renderQuick(projects, m) {
+  const d = await chrome.storage.local.get(['apiCols', 'apiState', 'apiCookies']);
+  const cols = d.apiCols ?? [];
+  const pinned = p => cols.filter(c => c.projectId === p.id).flatMap(c => c.reqs.filter(r => r.pin));
+  // Auf einer Projektseite nur dieses Projekt, sonst alle Projekte mit markierten Requests
+  const list = (m ? [m.project] : projects).filter(p => pinned(p).length);
+  if (!list.length) {
+    put(
+      $('quick'),
+      cols.length > 0 && h('div', { className: 'muted' }, 'Tipp: Im API-Tester einen Request mit ☆ markieren, dann kannst du ihn hier schnell senden.')
+    );
+    return;
+  }
+  put(
+    $('quick'),
+    list.map(p => {
+      if (qEnv[p.id] == null) qEnv[p.id] = m?.project.id === p.id ? m.index : d.apiState?.envSel?.[p.id] ?? 0;
+      const env = p.envs[qEnv[p.id]] ?? p.envs[0];
+      return h(
+        'div',
+        { className: 'qgroup', style: 'display:grid;gap:6px' },
+        h(
+          'div',
+          { className: 'qhead' },
+          h('h1', {}, m ? 'Schnell-Requests' : `Requests · ${p.name}`),
+          p.envs.map((e, i) =>
+            h('button', { className: 'qenv', 'aria-pressed': String(e === env), title: e.origin, onclick: () => { qEnv[p.id] = i; render(); } }, dot(e.name), e.name)
+          )
+        ),
+        pinned(p).map(r => quickItem(p, env, r, d.apiCookies !== false))
+      );
+    })
+  );
+}
+
+function quickItem(p, env, r, cookies) {
+  const res = h('div');
+  const key = `${r.id}@${env.name}`;
+  const row = h(
+    'button',
+    { className: 'qrow', title: `${r.method} ${r.path}\nKlick: senden` },
+    h('span', { className: `qm ${r.method}` }, r.method),
+    h('span', { className: 'qp' }, h('code', {}, r.path || '/'), r.summary && h('span', {}, r.summary)),
+    h('span', { className: 'qgo' }, 'Senden')
+  );
+  row.addEventListener(
+    'click',
+    guard(LS.isProd(env.name) && !['GET', 'HEAD'].includes(r.method), `${r.method} auf ${env.name}? Nochmals klicken.`, () => quickSend(p, env, r, cookies, res, key))
+  );
+  if (qRes.has(key)) showQuick(res, qRes.get(key), r, p);
+  return h('div', { className: 'q' }, row, res);
+}
+
+function quickSend(p, env, r, cookies, box, key) {
+  let req;
+  try {
+    req = AP.build(r, env, cookies);
+  } catch (err) {
+    return showQuick(box, { error: err.message }, r, p);
+  }
+  // Zugriff im Klick anfragen (zeigt nur beim ersten Mal einen Dialog)
+  const pat = LS.pattern(req.url.origin);
+  chrome.storage.local.get('apiOrigins').then(({ apiOrigins = [] }) => {
+    if (!apiOrigins.includes(pat)) chrome.storage.local.set({ apiOrigins: [...apiOrigins, pat] });
+  });
+  const okP = chrome.permissions.request({ origins: [pat] }).catch(() => false);
+  put(box, h('div', { className: 'qres muted' }, 'Wird gesendet …'));
+  (async () => {
+    if (!(await okP)) return showQuick(box, { error: `Kein Zugriff auf ${req.url.host} erlaubt.` }, r, p);
+    const t0 = performance.now();
+    let out;
+    try {
+      const resp = await fetch(req.url, req.init);
+      const text = await resp.text();
+      out = { status: resp.status, statusText: resp.statusText, ms: performance.now() - t0, text, ct: resp.headers.get('content-type') || '' };
+    } catch (err) {
+      out = { error: `Keine Antwort (${err.message}). Läuft der Server?` };
+    }
+    out.url = `${r.method} ${req.url.href}`;
+    out.miss = req.miss;
+    qRes.set(key, out);
+    showQuick(box, out, r, p);
+  })();
+}
+
+function showQuick(box, res, r, p) {
+  const openBig = h('button', { className: 'link', style: 'padding:0', onclick: () => {
+    chrome.runtime.sendMessage({ type: 'open-api', url: tab?.url, projectId: p.id, reqId: r.id });
+    window.close();
+  } }, 'Im API-Tester öffnen');
+  if (res.error) {
+    put(box, h('div', { className: 'qres' }, h('div', { className: 'bad' }, res.error), res.url && h('div', { className: 'muted' }, res.url), h('div', {}, openBig)));
+    return;
+  }
+  let body = res.text;
+  try {
+    body = JSON.stringify(JSON.parse(res.text), null, 2);
+  } catch {}
+  const LIMIT = 20000;
+  const cls = res.status >= 500 ? 's5' : res.status >= 400 ? 's4' : res.status >= 300 ? 's3' : 's2';
+  const copy = h('button', { className: 'link', style: 'padding:0' }, 'Kopieren');
+  copy.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(body);
+    copy.textContent = 'Kopiert';
+  });
+  put(
+    box,
+    h(
+      'div',
+      { className: 'qres' },
+      h(
+        'div',
+        { className: 'qmeta' },
+        h('span', { className: `st ${cls}` }, `${res.status} ${res.statusText || AP.STATUS[res.status] || ''}`.trim()),
+        h('span', { className: 'muted' }, AP.fmtMs(res.ms)),
+        h('span', { className: 'grow' }),
+        copy,
+        openBig
+      ),
+      res.miss?.length > 0 && h('div', { className: 'warn' }, `Variable fehlt: ${res.miss.map(n => `{{${n}}}`).join(', ')}`),
+      body ? h('pre', { className: 'qout' }, body.length > LIMIT ? body.slice(0, LIMIT) + '\n… (gekürzt, ganze Antwort im API-Tester)' : body) : h('div', { className: 'muted' }, '(leere Antwort)')
+    )
+  );
+}
+
+function put(el, ...kids) {
+  el.replaceChildren(...kids.flat(Infinity).filter(x => x != null && x !== false));
+}

@@ -383,6 +383,20 @@ function opBlock(c, r) {
   const badge = h('span', { className: 'badge' }, r.method);
   const path = h('span', { className: 'path' }, r.path);
   const sum = h('span', { className: 'sum' }, r.summary);
+  const star = h('button', { className: 'star' + (r.pin ? ' on' : ''), type: 'button' }, r.pin ? '★' : '☆');
+  const paintStar = () => {
+    star.className = 'star' + (r.pin ? ' on' : '');
+    star.textContent = r.pin ? '★' : '☆';
+    star.title = r.pin ? 'Aus dem Popup entfernen' : 'Im Popup anzeigen (schnell senden)';
+  };
+  paintStar();
+  star.addEventListener('click', ev => {
+    ev.stopPropagation();
+    r.pin = !r.pin;
+    paintStar();
+    save();
+    toast(r.pin ? 'Im Popup verfügbar.' : 'Aus dem Popup entfernt.');
+  });
   const block = h(
     'div',
     { className: `op m-${r.method.toLowerCase()}${isOpen ? ' open' : ''}`, 'data-id': r.id },
@@ -399,6 +413,7 @@ function opBlock(c, r) {
       badge,
       path,
       sum,
+      star,
       h('span', { className: 'chev' }, '▾')
     )
   );
@@ -717,46 +732,7 @@ function bodyEditor(r, onChange) {
 /* ---------- Anfrage bauen und senden ---------- */
 
 function buildRequest(r, env) {
-  const miss = new Set();
-  const sub = s => AP.fill(s, env, miss);
-
-  let path = String(r.path ?? '').trim();
-  path = path.replace(/(?<!\{)\{([A-Za-z_][\w.-]*)\}(?!\})/g, (m, n) => {
-    const v = sub(r.pathVals?.[n] ?? '');
-    return v ? encodeURIComponent(v) : m;
-  });
-  path = sub(path);
-
-  let url;
-  if (/^https?:\/\//i.test(path)) url = new URL(path);
-  else {
-    if (!env) throw new Error('Keine Umgebung gewählt: links ein Projekt anlegen und oben eine Umgebung wählen, oder eine volle Adresse mit https:// eingeben.');
-    url = new URL(env.origin + '/' + path.replace(/^\/+/, ''));
-  }
-  for (const p of r.params ?? []) if (p.on !== false && p.k.trim()) url.searchParams.append(sub(p.k).trim(), sub(p.v));
-
-  const headers = new Headers();
-  for (const p of r.headers ?? []) {
-    if (p.on === false || !p.k.trim()) continue;
-    try {
-      headers.set(sub(p.k).trim(), sub(p.v));
-    } catch {
-      throw new Error(`Ungültiger Header: ${p.k}`);
-    }
-  }
-
-  const init = { method: r.method, headers, credentials: S.cookies ? 'include' : 'omit', redirect: 'follow', cache: 'no-store' };
-  const b = r.body;
-  if (!NO_BODY.includes(r.method) && b && b.mode !== 'none' && b.text.trim()) {
-    if (b.mode === 'form') {
-      init.body = new URLSearchParams(Object.entries(AP.parseVars(sub(b.text)))).toString();
-      if (!headers.has('content-type')) headers.set('content-type', 'application/x-www-form-urlencoded');
-    } else {
-      init.body = sub(b.text);
-      if (!headers.has('content-type')) headers.set('content-type', b.mode === 'json' ? 'application/json' : 'text/plain;charset=UTF-8');
-    }
-  }
-  return { url, init, miss: [...miss] };
+  return AP.build(r, env, S.cookies);
 }
 
 async function send(r, btn, resBox) {
@@ -1203,6 +1179,10 @@ function renderAll() {
   renderTop();
   renderSide();
   renderMain();
+  if (focusReq) {
+    document.querySelector(`[data-id="${focusReq}"]`)?.scrollIntoView({ block: 'center' });
+    focusReq = null;
+  }
 }
 
 // Änderungen aus dem Popup (Projekte) und vom Icon (aktuelle Seite, gewünschtes Projekt) übernehmen.
@@ -1227,8 +1207,18 @@ chrome.storage.onChanged.addListener((ch, area) => {
 });
 
 // Vom Popup oder Icon geöffnet: passendes Projekt (und Umgebung der aktuellen Seite) wählen.
+let focusReq = null;
 function pickFromOpen(o) {
   if (o.projectId && S.projects.some(p => p.id === o.projectId)) S.project = o.projectId;
+  if (o.reqId) {
+    const c = S.cols.find(c => c.reqs.some(r => r.id === o.reqId));
+    if (c) {
+      S.project = c.projectId;
+      c.folded = false;
+      opened.add(o.reqId);
+      focusReq = o.reqId;
+    }
+  }
   const m = o.url ? LS.match(S.projects, o.url) : null;
   if (m && (!o.projectId || m.project.id === o.projectId)) {
     S.project = m.project.id;

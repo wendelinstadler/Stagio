@@ -43,11 +43,37 @@
   footer a { color:var(--muted); }
   footer a:hover { color:var(--accent); }
   button.plain { padding:0; margin-top:6px; color:var(--accent); }
+  /* Schnell-Requests */
+  #quick:empty { display:none; }
+  #quick { display:grid; gap:6px; }
+  .qhead { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .qhead h1 { flex:1; min-width:0; }
+  .qenv { display:flex; align-items:center; gap:4px; padding:1px 8px; border:1px solid var(--line); border-radius:999px; background:var(--bg); color:var(--fg); font:inherit; font-size:11px; cursor:pointer; }
+  .qenv[aria-pressed="true"] { border-color:var(--accent); background:var(--soft); font-weight:600; }
+  .qenv .dot { width:8px; height:8px; }
+  .q { border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .qrow { display:flex; align-items:center; gap:8px; width:100%; padding:6px 8px; border:0; background:var(--bg); color:var(--fg); font:inherit; text-align:left; cursor:pointer; }
+  .qrow:hover { background:var(--soft); }
+  .qm { flex:none; min-width:50px; padding:2px 0; border-radius:4px; color:#fff; font-size:11px; font-weight:700; text-align:center; background:#61affe; }
+  .qm.POST { background:#49cc90; } .qm.PUT { background:#fca130; } .qm.PATCH { background:#50e3c2; } .qm.DELETE { background:#f93e3e; } .qm.HEAD { background:#9012fe; } .qm.OPTIONS { background:#0d5aa7; }
+  .qp { min-width:0; display:grid; }
+  .qp code { font-family:ui-monospace,Consolas,monospace; font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .qp span { color:var(--muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .qgo { margin-left:auto; flex:none; color:var(--accent); font-weight:600; font-size:12px; }
+  .qrow[data-armed] .qgo, .qrow[data-armed] { color:var(--bad); }
+  .qres { display:grid; gap:4px; padding:6px 8px 8px; border-top:1px solid var(--line); background:var(--soft); }
+  .qmeta { display:flex; align-items:center; gap:8px; font-size:12px; }
+  .qmeta .grow { flex:1; }
+  .st { padding:1px 6px; border-radius:4px; color:#fff; font:700 11px ui-monospace,Consolas,monospace; }
+  .s2 { background:#188038; } .s3 { background:#1a73e8; } .s4 { background:#b06000; } .s5 { background:#c5221f; }
+  .qout { margin:0; max-height:200px; overflow:auto; padding:6px 8px; border-radius:6px; background:#1e1f22; color:#e8e8ea; font:11px/1.45 ui-monospace,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .warn { color:#b06000; font-size:11px; }
 </style>
 </head>
 <body>
 <div class="note"><h1>EnvSwitch</h1><button class="link open" id="api" style="padding:0" title="Requests senden wie in Swagger">API-Tester öffnen</button></div>
 <section id="now"></section>
+<section id="quick"></section>
 <section id="list"></section>
 <form id="form">
   <h1 id="formTitle">Projekt hinzufügen</h1>
