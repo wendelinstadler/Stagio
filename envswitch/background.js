@@ -27,8 +27,10 @@ async function syncNow() {
   const wanted = [...new Set(projects.flatMap(p => p.envs.map(e => LS.pattern(e.origin))))];
 
   // Berechtigungen für Adressen abgeben, die in keinem Projekt mehr vorkommen.
+  // Adressen, die der API-Tester braucht, behalten (auch wenn sie in keinem Projekt stehen).
+  const { apiOrigins = [] } = await chrome.storage.local.get('apiOrigins');
   const held = (await chrome.permissions.getAll()).origins || [];
-  const unused = held.filter(o => !wanted.includes(o));
+  const unused = held.filter(o => !wanted.includes(o) && !apiOrigins.includes(o));
   if (unused.length) await chrome.permissions.remove({ origins: unused }).catch(() => {});
 
   const granted = [];
@@ -57,7 +59,10 @@ const sync = () => (chain = chain.then(syncNow, syncNow).then(paintAll, paintAll
 chrome.tabs.onUpdated.addListener((_id, info, tab) => {
   if (info.url || info.status) paint(tab);
 });
-chrome.storage.onChanged.addListener(sync);
+// Nur bei Projekten und Einstellungen neu einrichten, nicht bei jeder Änderung im API-Tester.
+chrome.storage.onChanged.addListener(ch => {
+  if (ch.projects || ch.marker || ch.apiOrigins) sync();
+});
 chrome.permissions.onAdded.addListener(sync);
 chrome.permissions.onRemoved.addListener(sync);
 chrome.runtime.onInstalled.addListener(sync);
@@ -68,6 +73,10 @@ chrome.runtime.onStartup.addListener(sync);
 chrome.runtime.onMessage.addListener((m, _sender, reply) => {
   if (m?.type === 'sync') {
     sync().then(() => reply({ ok: true }));
+    return true;
+  }
+  if (m?.type === 'open-api') {
+    openApi(m.url, m.projectId).then(() => reply({ ok: true }));
     return true;
   }
   if (m?.type !== 'open') return false;
@@ -102,8 +111,27 @@ chrome.runtime.onMessage.addListener((m, _sender, reply) => {
 
 chrome.commands.onCommand.addListener(async (command, tab) => {
   tab ??= (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
+  if (command === 'open-api') return openApi(tab?.url, null, tab);
   const m = tab?.url ? LS.match(await LS.projects(), tab.url) : null;
   if (!m) return;
   const next = m.project.envs[LS.shortcutTarget(m.project.envs, m.index, command)];
   if (next) chrome.tabs.update(tab.id, { url: LS.target(tab.url, next.origin) });
 });
+
+// ---------- API-Tester ----------
+
+// Öffnet den API-Tester als Tab (oder holt den offenen nach vorne). Die aktuelle Seite wird mitgegeben,
+// damit dort gleich das passende Projekt und die Umgebung gewählt sind.
+async function openApi(url, projectId, tab) {
+  const fromPage = /^https?:/i.test(url || '') ? url : null;
+  await chrome.storage.local.set({ ...(fromPage ? { from: fromPage } : {}), apiOpen: { url: fromPage, projectId: projectId ?? null, at: Date.now() } });
+  const app = chrome.runtime.getURL('app.html');
+  const [ctx] = await chrome.runtime.getContexts({ contextTypes: ['TAB'], documentUrls: [app] });
+  if (ctx) {
+    await chrome.tabs.update(ctx.tabId, { active: true });
+    await chrome.windows.update(ctx.windowId, { focused: true });
+  } else {
+    tab ??= (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
+    await chrome.tabs.create({ url: app, ...(tab ? { index: tab.index + 1, windowId: tab.windowId } : {}) });
+  }
+}

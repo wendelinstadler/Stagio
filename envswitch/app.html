@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EnvSwitch API</title>
+<link rel="icon" href="icons/48.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <h1 class="logo"><img src="icons/48.png" alt="">EnvSwitch <span class="muted">API</span></h1>
+  <select id="projectSel" title="Projekt" hidden></select>
+  <div id="envbar" class="envbar"></div>
+  <span class="grow"></span>
+  <input id="search" type="search" placeholder="Suchen (Pfad, Methode, Beschreibung)">
+  <button class="ghost" id="newCol">+ Sammlung</button>
+  <button class="ghost" id="openImport">OpenAPI importieren</button>
+  <button class="btn" id="newReq">+ Request</button>
+</header>
+
+<div class="layout">
+  <aside>
+    <section class="side" id="projectBox"></section>
+
+    <section class="side">
+      <button class="link plain" id="showForm" hidden>+ Neues Projekt</button>
+      <form id="form" hidden>
+        <h3 id="formTitle">Projekt hinzufügen</h3>
+        <input id="name" placeholder="Projektname" required>
+        <label class="f">Umgebungen (Name = Adresse, Name frei wählbar)
+          <textarea id="envs" rows="3" required placeholder="Lokal = http://localhost:8080&#10;Test = test.example.ch&#10;Prod = https://www.example.ch"></textarea>
+        </label>
+        <button type="button" class="link plain" id="addCurrent" hidden>Aktuelle Seite als Zeile einfügen</button>
+        <label class="f">Seiten (optional, Name = Pfad)
+          <textarea id="pages" rows="2" placeholder="Shop = /&#10;Backoffice = /backoffice"></textarea>
+        </label>
+        <div class="muted">Gleiche Projekte wie im EnvSwitch-Popup. Variablen pro Umgebung setzt du nach dem Speichern oben bei der Umgebung.</div>
+        <div class="bad" id="err"></div>
+        <div class="row">
+          <button type="button" class="link" id="cancel">Abbrechen</button>
+          <button class="btn">Speichern</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="side small">
+      <label class="check"><input type="checkbox" id="cookies"> Cookies der Seite mitsenden (eingeloggt bleiben)</label>
+      <div class="row left">
+        <button class="link" id="exportBtn">Backup exportieren</button>
+        <button class="link" id="importBtn">Backup importieren</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+      </div>
+      <div class="muted">Strg+Enter sendet den offenen Request. Ein Tastenkürzel für diese Seite kannst du unter chrome://extensions/shortcuts setzen.</div>
+    </section>
+  </aside>
+
+  <main id="main"></main>
+</div>
+
+<dialog id="importDlg">
+  <form method="dialog" id="importForm">
+    <h3>OpenAPI / Swagger importieren</h3>
+    <label class="f">Adresse der API-Doku
+      <input id="specUrl" placeholder="http://localhost:8080/v3/api-docs">
+    </label>
+    <label class="f">… oder JSON einfügen
+      <textarea id="specText" rows="8" class="mono" spellcheck="false" placeholder='{ "openapi": "3.0.1", "paths": { … } }'></textarea>
+    </label>
+    <div class="muted">Jeder Tag wird eine Sammlung im aktuellen Projekt, wie in Swagger. Nochmals importieren aktualisiert die Sammlungen.</div>
+    <div class="bad" id="specErr"></div>
+    <div class="row">
+      <button type="button" class="link" id="importCancel">Abbrechen</button>
+      <button type="button" class="btn" id="importGo">Importieren</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status" hidden></div>
+
+<script src="common.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

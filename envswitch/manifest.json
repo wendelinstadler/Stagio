@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "EnvSwitch",
-  "version": "1.4.1",
-  "description": "Wechselt zwischen lokaler, Test- und Live-Umgebung und öffnet Seiten wie Backoffice mit einem Klick.",
+  "version": "2.0.0",
+  "description": "Wechselt zwischen lokaler, Test- und Live-Umgebung, öffnet Seiten wie Backoffice mit einem Klick und testet APIs im Swagger-Stil.",
   "icons": {
     "16": "icons/16.png",
     "48": "icons/48.png",
@@ -45,6 +45,9 @@
         "default": "Alt+Shift+3"
       },
       "description": "Zur 3. Umgebung wechseln"
+    },
+    "open-api": {
+      "description": "API-Tester öffnen"
     }
   },
   "optional_host_permissions": [

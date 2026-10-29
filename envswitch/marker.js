@@ -44,6 +44,8 @@
 
   // Manche Seiten setzen den Titel später neu: dann wieder ergänzen.
   new MutationObserver(fixTitle).observe(document.head || document.documentElement, { childList: true, subtree: true, characterData: true });
-  chrome.storage.onChanged.addListener(apply);
+  chrome.storage.onChanged.addListener(ch => {
+    if (ch.projects || ch.marker) apply();
+  });
   apply();
 })();

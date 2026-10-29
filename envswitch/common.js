@@ -176,3 +176,60 @@ globalThis.LS = {
     return { '#c5221f': 'red', '#188038': 'green', '#b06000': 'orange' }[this.color(name)] || 'blue';
   },
 };
+
+// ---------- API-Tester ----------
+// Umgebungen sind die gleichen wie oben ({ name, origin }), dazu optional vars ("Name = Wert" pro Zeile).
+globalThis.AP = {
+  id() {
+    return crypto.randomUUID().slice(0, 8);
+  },
+
+  isProd: name => LS.isProd(name),
+  color: name => LS.color(name),
+
+  newReq(over = {}) {
+    return { id: this.id(), method: 'GET', path: '', summary: '', params: [], headers: [], pathVals: {}, body: { mode: 'json', text: '' }, ...over };
+  },
+
+  async cols() {
+    return (await chrome.storage.local.get('apiCols')).apiCols ?? [];
+  },
+
+  parseVars(text) {
+    const out = {};
+    for (const line of String(text ?? '').split('\n')) {
+      const i = line.indexOf('=');
+      if (i < 1) continue;
+      const k = line.slice(0, i).trim();
+      if (k) out[k] = line.slice(i + 1).trim();
+    }
+    return out;
+  },
+
+  // Ersetzt {{name}} durch Variablen der Umgebung. Unbekannte Namen landen in miss.
+  fill(s, env, miss) {
+    const vars = env ? { ...this.parseVars(env.vars), baseUrl: env.origin } : {};
+    return String(s ?? '').replace(/\{\{\s*([$\w.-]+)\s*\}\}/g, (m, n) => {
+      if (n === '$uuid') return crypto.randomUUID();
+      if (n === '$timestamp') return String(Math.floor(Date.now() / 1000));
+      if (n === '$isoDate') return new Date().toISOString();
+      if (n in vars) return vars[n];
+      miss?.add(n);
+      return m;
+    });
+  },
+
+  // Pfad-Parameter im Swagger-Stil: /users/{id} (einfache Klammern, nicht {{...}})
+  pathNames(path) {
+    return [...new Set([...String(path ?? '').matchAll(/(?<!\{)\{([A-Za-z_][\w.-]*)\}(?!\})/g)].map(m => m[1]))];
+  },
+
+  // Beim Bearbeiten eines Projekts die Variablen der gleichnamigen Umgebungen behalten.
+  keepVars(oldEnvs, newEnvs) {
+    for (const e of newEnvs) {
+      const old = (oldEnvs ?? []).find(o => o.name.toLowerCase() === e.name.toLowerCase()) ?? (oldEnvs ?? []).find(o => o.origin === e.origin);
+      if (old?.vars) e.vars = old.vars;
+    }
+    return newEnvs;
+  },
+};

@@ -74,6 +74,13 @@ function openGroups(groups) {
   chrome.runtime.sendMessage({ type: 'open', groups, windowId: tab?.windowId, index: tab ? tab.index + 1 : undefined });
 }
 
+// API-Tester öffnen, mit diesem Projekt (oder dem Projekt der aktuellen Seite).
+function openApi(projectId) {
+  chrome.runtime.sendMessage({ type: 'open-api', url: tab?.url, projectId: projectId ?? null });
+  window.close();
+}
+$('api').addEventListener('click', () => openApi(null));
+
 function resetForm() {
   editing = null;
   $('form').reset();
@@ -106,6 +113,7 @@ function projectCard(p, notAllowed) {
             },
             'Alles öffnen'
           ),
+        h('button', { className: 'link', title: 'Requests für dieses Projekt im API-Tester', onclick: () => openApi(p.id) }, 'API'),
         h(
           'button',
           {
@@ -248,7 +256,7 @@ $('form').addEventListener('submit', async ev => {
   const projects = await LS.projects();
   const name = $('name').value.trim();
   const existing = projects.find(p => p.id === editing);
-  if (existing) Object.assign(existing, { name, envs, pages });
+  if (existing) Object.assign(existing, { name, envs: AP.keepVars(existing.envs, envs), pages });
   else projects.push({ id: Date.now().toString(36), name, envs, pages });
   await LS.save(projects);
   resetForm();
