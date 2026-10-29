@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "EnvSwitch",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Wechselt zwischen lokaler, Test- und Live-Umgebung, öffnet Seiten wie Backoffice mit einem Klick und testet APIs im Swagger-Stil.",
   "icons": {
     "16": "icons/16.png",

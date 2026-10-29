@@ -80,6 +80,38 @@ function openApi(projectId) {
   window.close();
 }
 $('api').addEventListener('click', () => openApi(null));
+$('apiBig').addEventListener('click', () => openApi(null));
+
+// ---------- Tabs oben ----------
+// Neuer Bereich (z. B. Logs): hier eintragen und im HTML ein <div class="view" data-view="..."> anlegen.
+const TABS = [
+  { id: 'switch', label: 'Switcher' },
+  { id: 'api', label: 'API' },
+];
+let view = 'switch';
+const tabCount = {};
+
+function renderTabs() {
+  put(
+    $('tabs'),
+    TABS.map(t =>
+      h(
+        'button',
+        { className: 'tab', role: 'tab', 'aria-selected': String(t.id === view), onclick: () => showView(t.id) },
+        t.label,
+        tabCount[t.id] ? h('span', { className: 'n' }, String(tabCount[t.id])) : null
+      )
+    )
+  );
+}
+
+function showView(id) {
+  if (!TABS.some(t => t.id === id)) id = 'switch';
+  view = id;
+  document.querySelectorAll('.view').forEach(v => (v.hidden = v.dataset.view !== id));
+  renderTabs();
+  chrome.storage.local.set({ popupTab: id });
+}
 
 function resetForm() {
   editing = null;
@@ -272,7 +304,8 @@ $('marker').addEventListener('change', ev => {
   asked?.then(render);
 });
 
-Promise.all([chrome.tabs.query({ active: true, currentWindow: true }), chrome.storage.local.get('marker')]).then(([[t], s]) => {
+Promise.all([chrome.tabs.query({ active: true, currentWindow: true }), chrome.storage.local.get(['marker', 'popupTab'])]).then(([[t], s]) => {
+  showView(s.popupTab ?? 'switch');
   tab = t ?? null;
   $('addCurrent').hidden = !tab?.url?.startsWith('http');
   $('marker').checked = s.marker !== false;
@@ -290,10 +323,20 @@ async function renderQuick(projects, m) {
   const pinned = p => cols.filter(c => c.projectId === p.id).flatMap(c => c.reqs.filter(r => r.pin));
   // Auf einer Projektseite nur dieses Projekt, sonst alle Projekte mit markierten Requests
   const list = (m ? [m.project] : projects).filter(p => pinned(p).length);
+  tabCount.api = list.reduce((n, p) => n + pinned(p).length, 0);
+  renderTabs();
   if (!list.length) {
     put(
       $('quick'),
-      cols.length > 0 && h('div', { className: 'muted' }, 'Tipp: Im API-Tester einen Request mit ☆ markieren, dann kannst du ihn hier schnell senden.')
+      h(
+        'div',
+        { className: 'empty muted' },
+        m && projects.some(p => pinned(p).length)
+          ? `Für ${m.project.name} ist noch kein Request markiert.`
+          : 'Noch keine Schnell-Requests.',
+        h('br'),
+        'Im API-Tester einen Request mit ☆ markieren, dann kannst du ihn hier mit einem Klick senden.'
+      )
     );
     return;
   }

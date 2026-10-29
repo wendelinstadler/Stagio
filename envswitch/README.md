@@ -2,7 +2,8 @@
 
 Chrome-Extension für Projekte mit mehreren Umgebungen (Lokal, Test, Prod):
 
-- **Popup:** zwischen Umgebungen wechseln, Seiten wie Backoffice mit einem Klick öffnen, Umgebung auf der Seite markieren (Farbbalken und Tab-Titel). Alt+Shift+E / Alt+Shift+1–3.
+- **Popup** mit Tabs oben (Switcher, API; weitere Bereiche lassen sich in `TABS` in `popup.js` ergänzen).
+- **Switcher:** zwischen Umgebungen wechseln, Seiten wie Backoffice mit einem Klick öffnen, Umgebung auf der Seite markieren (Farbbalken und Tab-Titel). Alt+Shift+E / Alt+Shift+1–3.
 - **API-Tester:** Requests senden und Antworten im Swagger-Stil ansehen, mit denselben Projekten und Umgebungen. Öffnen über „API-Tester öffnen“ oder „API“ im Popup.
 
 ## API-Tester

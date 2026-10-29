@@ -68,12 +68,32 @@
   .s2 { background:#188038; } .s3 { background:#1a73e8; } .s4 { background:#b06000; } .s5 { background:#c5221f; }
   .qout { margin:0; max-height:200px; overflow:auto; padding:6px 8px; border-radius:6px; background:#1e1f22; color:#e8e8ea; font:11px/1.45 ui-monospace,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
   .warn { color:#b06000; font-size:11px; }
+  /* Kopfzeile mit Tabs (weitere Bereiche wie Logs einfach in TABS in popup.js ergänzen) */
+  [hidden] { display:none !important; }
+  .bar { position:sticky; top:-12px; z-index:2; display:flex; align-items:center; gap:10px; margin:-12px -12px 0; padding:8px 12px; border-bottom:1px solid var(--line); background:var(--bg); }
+  .brand { display:flex; align-items:center; gap:6px; font-weight:700; white-space:nowrap; }
+  .brand img { width:16px; height:16px; }
+  .tabs { display:flex; gap:2px; padding:2px; border-radius:8px; background:var(--soft); margin-left:auto; }
+  .tab { display:flex; align-items:center; gap:5px; padding:4px 10px; border:0; border-radius:6px; background:none; color:var(--muted); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+  .tab:hover { color:var(--fg); }
+  .tab[aria-selected="true"] { background:var(--bg); color:var(--fg); box-shadow:0 1px 2px rgba(0,0,0,.12); }
+  .tab .n { min-width:16px; padding:0 4px; border-radius:999px; background:var(--accent); color:var(--bg); font-size:10px; line-height:16px; text-align:center; }
+  button.icon { width:26px; height:26px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--muted); font:inherit; font-size:14px; cursor:pointer; }
+  button.icon:hover { color:var(--accent); border-color:var(--accent); }
+  .view { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
+  .btn.wide { width:100%; padding:8px; }
+  .empty { padding:14px 10px; border:1px dashed var(--line); border-radius:8px; text-align:center; }
 </style>
 </head>
 <body>
-<div class="note"><h1>EnvSwitch</h1><button class="link open" id="api" style="padding:0" title="Requests senden wie in Swagger">API-Tester öffnen</button></div>
+<header class="bar">
+  <span class="brand"><img src="icons/16.png" alt="">EnvSwitch</span>
+  <nav id="tabs" class="tabs" role="tablist"></nav>
+  <button class="icon" id="api" title="API-Tester im grossen Fenster öffnen">↗</button>
+</header>
+
+<div class="view" data-view="switch">
 <section id="now"></section>
-<section id="quick"></section>
 <section id="list"></section>
 <form id="form">
   <h1 id="formTitle">Projekt hinzufügen</h1>
@@ -94,6 +114,13 @@
   </div>
 </form>
 <label class="muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="marker" style="width:auto"> Umgebung auf der Seite markieren (Farbbalken und Tab-Titel)</label>
+</div>
+
+<div class="view" data-view="api" hidden>
+<section id="quick"></section>
+<button class="btn wide" id="apiBig">API-Tester öffnen</button>
+</div>
+
 <footer class="muted" style="text-align:center"><a href="https://github.com/wendelinstadler/envswitch" target="_blank" rel="noopener noreferrer">EnvSwitch auf GitHub</a></footer>
 <script src="common.js"></script>
 <script src="popup.js"></script>
