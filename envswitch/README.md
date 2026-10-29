@@ -12,9 +12,11 @@ Chrome-Extension für Projekte mit mehreren Umgebungen (Lokal, Test, Prod):
 - Oben die Umgebung wählen: gleicher Request geht an Lokal, Test oder Prod
 - Variablen pro Umgebung, z. B. `{{token}}`, dazu `{{baseUrl}}`, `{{$uuid}}`, `{{$timestamp}}`
 - Antwort mit Status, Zeit, Grösse, JSON-Baum, Rohansicht, HTML-Vorschau und Headern
+- **Importieren:** cURL (auch mehrere), Postman-Collection, HAR-Datei aus den DevTools und OpenAPI werden automatisch erkannt
 - „API-Doku suchen“ findet `/v3/api-docs` (Spring Boot/springdoc), `/swagger.json` usw. und importiert alle Endpoints; jeder Tag wird eine Sammlung
 - Als cURL kopieren, Sammlungen, Suche, Backup als JSON (auch alte ApiPeek-Backups)
 - Live-Schutz: POST/PUT/PATCH/DELETE auf Prod/Live braucht einen zweiten Klick
+- **Request hinzufügen im Popup:** Pfad, Adresse oder cURL einfügen und speichern
 - **Schnell-Requests im Popup:** Request im API-Tester mit ☆ markieren, dann im Popup mit einem Klick senden (Umgebung wählbar, Antwort direkt sichtbar)
 
 Für den API-Tester lässt sich unter `chrome://extensions/shortcuts` ein eigenes Tastenkürzel setzen (Chrome erlaubt nur vier vorgegebene, die braucht der Umgebungswechsel).

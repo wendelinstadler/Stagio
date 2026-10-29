@@ -47,8 +47,10 @@ function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNow, 250);
 }
+let lastSaved = '';
 function saveNow() {
   clearTimeout(saveTimer);
+  lastSaved = JSON.stringify(S.cols);
   return chrome.storage.local.set({ apiCols: S.cols, apiState: { project: S.project, envSel: S.envSel }, apiCookies: S.cookies });
 }
 addEventListener('beforeunload', () => saveNow());
@@ -299,7 +301,7 @@ function hero() {
     { className: 'hero' },
     h('h2', {}, `Noch keine Requests in ${project().name}`),
     h('div', { className: 'muted' }, 'Lege einen Request an, oder klick links bei einer Umgebung auf „API-Doku suchen“: Bei Spring Boot mit springdoc landen so alle Endpoints automatisch hier.'),
-    h('div', { className: 'row' }, h('button', { className: 'ghost', onclick: openImport }, 'OpenAPI importieren'), h('button', { className: 'btn', onclick: () => addReq() }, '+ Request'))
+    h('div', { className: 'row' }, h('button', { className: 'ghost', onclick: openImport }, 'Importieren (cURL, Postman, HAR, OpenAPI)'), h('button', { className: 'btn', onclick: () => addReq() }, '+ Request'))
   );
 }
 
@@ -910,6 +912,7 @@ function jsonTree(v, key, depth = 0) {
 function openImport() {
   if (!project()) return toast('Lege zuerst links ein Projekt an.', true);
   $('specErr').textContent = '';
+  showKind();
   const e = activeEnv();
   if (e && !$('specUrl').value) $('specUrl').placeholder = `${e.origin}/v3/api-docs`;
   $('importDlg').showModal();
@@ -917,28 +920,94 @@ function openImport() {
 $('openImport').addEventListener('click', openImport);
 $('importCancel').addEventListener('click', () => $('importDlg').close());
 
+const KIND = { curl: 'cURL', postman: 'Postman-Collection', har: 'HAR-Datei', openapi: 'OpenAPI/Swagger', backup: 'EnvSwitch-Backup' };
+const showKind = () => {
+  const d = AP.detect($('specText').value);
+  $('specKind').textContent = $('specText').value.trim() ? (d ? `Erkannt: ${KIND[d.kind]}` : 'Format nicht erkannt') : '';
+};
+$('specText').addEventListener('input', showKind);
+$('pickFile').addEventListener('click', () => $('specFile').click());
+const loadFile = async file => {
+  if (!file) return;
+  $('specText').value = await file.text();
+  showKind();
+};
+$('specFile').addEventListener('change', () => {
+  loadFile($('specFile').files[0]);
+  $('specFile').value = '';
+});
+$('specText').addEventListener('dragover', ev => ev.preventDefault());
+$('specText').addEventListener('drop', ev => {
+  ev.preventDefault();
+  loadFile(ev.dataTransfer.files[0]);
+});
+
 $('importGo').addEventListener('click', async () => {
   $('specErr').textContent = '';
-  const text = $('specText').value.trim();
+  let text = $('specText').value.trim();
   const urlIn = $('specUrl').value.trim();
   try {
-    if (text) {
-      importSpec(parseSpec(text), null);
-    } else if (urlIn) {
+    let src = null;
+    if (!text && urlIn) {
       const url = new URL(/^https?:\/\//i.test(urlIn) ? urlIn : LS.origin(urlIn) + '/' + urlIn.replace(/^[^/]*\/?/, ''));
       if (!(await allow(url))) throw new Error(`Kein Zugriff auf ${url.host} erlaubt.`);
       const resp = await fetch(url, { credentials: S.cookies ? 'include' : 'omit', cache: 'no-store' });
       if (!resp.ok) throw new Error(`${url.href} antwortet mit ${resp.status}.`);
-      importSpec(parseSpec(await resp.text()), url.href);
-    } else {
-      throw new Error('Adresse oder JSON angeben.');
+      text = await resp.text();
+      src = url.href;
     }
+    if (!text) throw new Error('cURL, JSON oder eine Datei einfügen, oder eine Adresse angeben.');
+    const d = AP.detect(text);
+    if (!d) throw new Error('Format nicht erkannt. Unterstützt: cURL, Postman-Collection (v2), HAR, OpenAPI/Swagger (JSON).');
+    if (d.kind === 'openapi') importSpec(d.data, src);
+    else if (d.kind === 'backup') throw new Error('Das ist ein Backup. Bitte links über „Backup importieren“ laden.');
+    else importReqs(d);
     $('importDlg').close();
     $('specText').value = '';
+    $('specUrl').value = '';
+    showKind();
   } catch (err) {
     $('specErr').textContent = err.message;
   }
 });
+
+// cURL, Postman und HAR ins aktuelle Projekt übernehmen
+function importReqs(d) {
+  const p = project();
+  if (!p) throw new Error('Lege zuerst links ein Projekt an.');
+  let groups;
+  let replace = null;
+  if (d.kind === 'curl') groups = [{ name: 'Importiert', reqs: AP.parseCurls(d.data, p) }];
+  else if (d.kind === 'har') groups = [{ name: 'Aus HAR', reqs: AP.parseHar(d.data, p) }];
+  else {
+    const pm = AP.parsePostman(d.data, p);
+    groups = pm.groups;
+    replace = `postman:${pm.name}`;
+  }
+  const total = groups.reduce((n, g) => n + g.reqs.length, 0);
+  if (!total) throw new Error(d.kind === 'har' ? 'In der HAR-Datei sind keine API-Aufrufe (Fetch/XHR).' : 'Keine Requests gefunden.');
+
+  // Postman: erneuter Import ersetzt die Sammlungen; cURL/HAR: an gleichnamige Sammlung anhängen
+  let at = S.cols.length;
+  if (replace) {
+    const old = S.cols.filter(c => c.src === replace && c.projectId === p.id);
+    if (old.length) at = S.cols.indexOf(old[0]);
+    S.cols = S.cols.filter(c => !(c.src === replace && c.projectId === p.id));
+  }
+  const fresh = [];
+  for (const g of groups) {
+    const same = !replace && projCols().find(c => c.name === g.name);
+    if (same) {
+      same.reqs.push(...g.reqs);
+      same.folded = false;
+    } else fresh.push({ id: AP.id(), name: g.name, projectId: p.id, src: replace ?? undefined, reqs: g.reqs, folded: false });
+  }
+  S.cols.splice(Math.min(at, S.cols.length), 0, ...fresh);
+  if (total === 1) opened.add(groups[0].reqs[0].id), (focusReq = groups[0].reqs[0].id);
+  save();
+  renderAll();
+  toast(`${KIND[d.kind]}: ${total} ${total === 1 ? 'Request' : 'Requests'} importiert.`);
+}
 
 function parseSpec(text) {
   let spec;
@@ -973,7 +1042,7 @@ async function findDocs(p, i, ev) {
         return;
       } catch {}
     }
-    toast(`Keine API-Doku auf ${e.origin} gefunden. Adresse über „OpenAPI importieren“ von Hand angeben.`, true);
+    toast(`Keine API-Doku auf ${e.origin} gefunden. Adresse über „Importieren“ von Hand angeben.`, true);
   } finally {
     btn.textContent = old;
   }
@@ -1196,6 +1265,12 @@ chrome.storage.onChanged.addListener((ch, area) => {
     if (!typing) renderSide();
     renderMain();
   }
+  if (ch.apiCols && JSON.stringify(ch.apiCols.newValue ?? []) !== lastSaved) {
+    clearTimeout(saveTimer);
+    // Im Popup hinzugefügt: übernehmen (eigene Speicherungen lösen hier nichts aus)
+    S.cols = ch.apiCols.newValue ?? [];
+    renderMain();
+  }
   if (ch.from) {
     S.from = ch.from.newValue ?? null;
     renderSide();
@@ -1203,11 +1278,17 @@ chrome.storage.onChanged.addListener((ch, area) => {
   if (ch.apiOpen?.newValue) {
     pickFromOpen(ch.apiOpen.newValue);
     renderAll();
+    afterOpen(ch.apiOpen.newValue);
   }
 });
 
 // Vom Popup oder Icon geöffnet: passendes Projekt (und Umgebung der aktuellen Seite) wählen.
 let focusReq = null;
+// Einmalige Wünsche aus dem Popup (z. B. Import-Dialog öffnen), danach vergessen, damit ein Neuladen sie nicht wiederholt
+function afterOpen(o) {
+  if (o.import && !$('importDlg').open) openImport();
+  chrome.storage.local.remove('apiOpen');
+}
 function pickFromOpen(o) {
   if (o.projectId && S.projects.some(p => p.id === o.projectId)) S.project = o.projectId;
   if (o.reqId) {
@@ -1240,4 +1321,5 @@ Promise.all([LS.projects(), chrome.storage.local.get(['apiCols', 'apiState', 'ap
   if (d.apiOpen) pickFromOpen(d.apiOpen);
   if (!project()) S.project = S.projects[0]?.id ?? null;
   renderAll();
+  if (d.apiOpen) afterOpen(d.apiOpen);
 });

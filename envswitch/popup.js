@@ -80,7 +80,10 @@ function openApi(projectId) {
   window.close();
 }
 $('api').addEventListener('click', () => openApi(null));
-$('apiBig').addEventListener('click', () => openApi(null));
+$('importLink').addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'open-api', url: tab?.url, projectId: addTarget()?.id ?? null, import: true });
+  window.close();
+});
 
 // ---------- Tabs oben ----------
 // Neuer Bereich (z. B. Logs): hier eintragen und im HTML ein <div class="view" data-view="..."> anlegen.
@@ -335,7 +338,7 @@ async function renderQuick(projects, m) {
           ? `Für ${m.project.name} ist noch kein Request markiert.`
           : 'Noch keine Schnell-Requests.',
         h('br'),
-        'Im API-Tester einen Request mit ☆ markieren, dann kannst du ihn hier mit einem Klick senden.'
+        'Füge unten einen hinzu (Pfad oder cURL einfügen) oder markiere im API-Tester einen mit ☆.'
       )
     );
     return;
@@ -455,3 +458,108 @@ function showQuick(box, res, r, p) {
 function put(el, ...kids) {
   el.replaceChildren(...kids.flat(Infinity).filter(x => x != null && x !== false));
 }
+
+// ---------- Request hinzufügen (auch per eingefügtem cURL) ----------
+
+let addProjects = [];
+let parsed = null; // aus cURL erkannte Requests
+
+function addTarget() {
+  return addProjects.find(p => p.id === $('addProject').value) ?? null;
+}
+
+async function openAdd() {
+  addProjects = await LS.projects();
+  $('addErr').textContent = '';
+  if (!addProjects.length) {
+    $('addErr').textContent = 'Lege zuerst im Tab „Switcher“ ein Projekt an.';
+  }
+  const m = tab?.url ? LS.match(addProjects, tab.url) : null;
+  const { apiState } = await chrome.storage.local.get('apiState');
+  const pick = m?.project.id ?? apiState?.project ?? addProjects[0]?.id;
+  put($('addProject'), addProjects.map(p => h('option', { value: p.id, selected: p.id === pick }, p.name)));
+  $('addProject').hidden = addProjects.length < 2;
+  $('addForm').hidden = false;
+  $('addBtn').hidden = true;
+  $('addPath').focus();
+}
+
+function closeAdd() {
+  $('addForm').reset();
+  $('addForm').hidden = true;
+  $('addBtn').hidden = false;
+  $('addBody').hidden = true;
+  $('addInfo').textContent = '';
+  $('addErr').textContent = '';
+  parsed = null;
+}
+
+$('addBtn').addEventListener('click', openAdd);
+$('addCancel').addEventListener('click', closeAdd);
+$('addMethod').addEventListener('change', () => {
+  $('addBody').hidden = ['GET', 'HEAD'].includes($('addMethod').value) && !$('addBody').value;
+});
+
+// Eingefügtes cURL oder eine volle Adresse erkennen
+$('addPath').addEventListener('input', () => {
+  const v = $('addPath').value.trim();
+  $('addErr').textContent = '';
+  parsed = null;
+  $('addInfo').textContent = '';
+  // Volle Adresse: passendes Projekt automatisch wählen
+  const pickByUrl = url => {
+    const hit = LS.match(addProjects, url);
+    if (hit) $('addProject').value = hit.project.id;
+  };
+  if (/^curl(\.exe)?\s/i.test(v)) {
+    try {
+      const first = AP.shellWords(v).find(w => /^https?:\/\//i.test(w));
+      if (first) pickByUrl(first);
+      parsed = AP.parseCurls(v, addTarget());
+    } catch (err) {
+      $('addErr').textContent = err.message;
+      return;
+    }
+    const r = parsed[0];
+    $('addPath').value = r.path + (r.params.length ? '?' + r.params.map(p => `${p.k}=${p.v}`).join('&') : '');
+    $('addMethod').value = r.method;
+    $('addBody').value = r.body.text;
+    $('addBody').hidden = !r.body.text && ['GET', 'HEAD'].includes(r.method);
+    const bits = [r.headers.length && `${r.headers.length} Header`, r.body.text && 'Body'].filter(Boolean).join(', ');
+    $('addInfo').textContent = parsed.length > 1 ? `${parsed.length} cURL-Befehle erkannt, alle werden gespeichert.` : `cURL erkannt${bits ? ` (${bits} übernommen)` : ''}.`;
+  } else if (/^https?:\/\//i.test(v)) {
+    pickByUrl(v);
+    if (addTarget()?.envs.some(e => v.startsWith(e.origin))) $('addInfo').textContent = `Gehört zu ${addTarget().name}, wird als Pfad gespeichert und gilt in allen Umgebungen.`;
+  }
+});
+
+$('addForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const p = addTarget();
+  if (!p) return ($('addErr').textContent = 'Lege zuerst im Tab „Switcher“ ein Projekt an.');
+  const raw = $('addPath').value.trim();
+  if (!raw) return ($('addErr').textContent = 'Pfad oder Adresse angeben, z. B. /api/users');
+  const method = $('addMethod').value;
+  const bodyText = $('addBody').value.trim();
+  let reqs;
+  if (parsed) {
+    reqs = parsed;
+    // Änderungen im Formular gelten für den ersten Request
+    const { path, params } = AP.fromUrl(raw, p);
+    Object.assign(reqs[0], { method, path, params, body: AP.bodyFrom(bodyText, reqs[0].headers.find(x => /^content-type$/i.test(x.k))?.v ?? '') });
+  } else {
+    const { path, params } = AP.fromUrl(raw, p);
+    reqs = [AP.newReq({ method, path: path.startsWith('/') || /^https?:|^\{\{/.test(path) ? path : '/' + path, params, body: AP.bodyFrom(bodyText) })];
+  }
+  const name = $('addName').value.trim();
+  if (name) reqs[0].summary = name;
+  for (const r of reqs) r.pin = true;
+
+  const { apiCols = [] } = await chrome.storage.local.get('apiCols');
+  let col = apiCols.find(c => c.projectId === p.id && c.name === 'Schnell-Requests');
+  if (!col) apiCols.push((col = { id: AP.id(), name: 'Schnell-Requests', projectId: p.id, reqs: [] }));
+  col.reqs.push(...reqs);
+  await chrome.storage.local.set({ apiCols });
+  closeAdd();
+  render();
+});

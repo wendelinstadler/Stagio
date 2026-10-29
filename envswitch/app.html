@@ -15,7 +15,7 @@
   <span class="grow"></span>
   <input id="search" type="search" placeholder="Suchen (Pfad, Methode, Beschreibung)">
   <button class="ghost" id="newCol">+ Sammlung</button>
-  <button class="ghost" id="openImport">OpenAPI importieren</button>
+  <button class="ghost" id="openImport">Importieren</button>
   <button class="btn" id="newReq">+ Request</button>
 </header>
 
@@ -60,14 +60,24 @@
 
 <dialog id="importDlg">
   <form method="dialog" id="importForm">
-    <h3>OpenAPI / Swagger importieren</h3>
-    <label class="f">Adresse der API-Doku
+    <h3>Requests importieren</h3>
+    <div class="muted">Wird automatisch erkannt: <b>cURL</b> (ein oder mehrere Befehle), <b>Postman</b>-Collection, <b>HAR</b>-Datei aus den DevTools und <b>OpenAPI/Swagger</b>.</div>
+    <label class="f">Einfügen
+      <textarea id="specText" rows="9" class="mono" spellcheck="false" placeholder="curl 'http://localhost:8080/api/users' -H 'accept: application/json'&#10;&#10;… oder Postman-/OpenAPI-JSON hier einfügen bzw. Datei hierher ziehen"></textarea>
+    </label>
+    <div class="row left">
+      <button type="button" class="ghost" id="pickFile">Datei wählen (.json, .har)</button>
+      <input type="file" id="specFile" accept=".json,.har,.txt,.sh,application/json" hidden>
+      <span class="muted" id="specKind"></span>
+    </div>
+    <label class="f">… oder Adresse (OpenAPI- oder Postman-JSON)
       <input id="specUrl" placeholder="http://localhost:8080/v3/api-docs">
     </label>
-    <label class="f">… oder JSON einfügen
-      <textarea id="specText" rows="8" class="mono" spellcheck="false" placeholder='{ "openapi": "3.0.1", "paths": { … } }'></textarea>
-    </label>
-    <div class="muted">Jeder Tag wird eine Sammlung im aktuellen Projekt, wie in Swagger. Nochmals importieren aktualisiert die Sammlungen.</div>
+    <details class="muted">
+      <summary>Wie komme ich an cURL oder HAR?</summary>
+      In Chrome F12 → Netzwerk. Rechtsklick auf einen Request → Kopieren → <b>Als cURL kopieren (bash)</b>, dann hier einfügen.
+      Für alle auf einmal: Rechtsklick → <b>Alle als HAR speichern</b> und die Datei hier wählen. Übernommen werden nur API-Aufrufe (Fetch/XHR), ohne Bilder, Skripte usw.
+    </details>
     <div class="bad" id="specErr"></div>
     <div class="row">
       <button type="button" class="link" id="importCancel">Abbrechen</button>

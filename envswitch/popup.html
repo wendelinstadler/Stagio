@@ -83,6 +83,12 @@
   .view { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
   .btn.wide { width:100%; padding:8px; }
   .empty { padding:14px 10px; border:1px dashed var(--line); border-radius:8px; text-align:center; }
+  .addf { display:grid; grid-template-columns:minmax(0,1fr); gap:6px; padding:10px; background:var(--soft); border-radius:8px; }
+  .addrow { display:flex; gap:6px; }
+  .addrow select { flex:none; width:auto; font-weight:700; font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+  .addrow input { flex:1; min-width:0; font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+  select { padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; }
+  #addInfo:empty, #addErr:empty { display:none; }
 </style>
 </head>
 <body>
@@ -118,7 +124,24 @@
 
 <div class="view" data-view="api" hidden>
 <section id="quick"></section>
-<button class="btn wide" id="apiBig">API-Tester öffnen</button>
+<form id="addForm" class="addf" hidden>
+  <h1>Request hinzufügen</h1>
+  <select id="addProject" title="Projekt"></select>
+  <div class="addrow">
+    <select id="addMethod" title="Methode"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select>
+    <input id="addPath" placeholder="/api/users, Adresse oder cURL einfügen" spellcheck="false" autocomplete="off">
+  </div>
+  <input id="addName" placeholder="Name (optional), z. B. Alle Benutzer">
+  <textarea id="addBody" rows="4" spellcheck="false" placeholder='Body (optional), z. B. {"name": "Wendelin"}' hidden></textarea>
+  <div class="muted" id="addInfo"></div>
+  <div class="bad" id="addErr"></div>
+  <div class="row">
+    <button type="button" class="link" id="addCancel">Abbrechen</button>
+    <button class="btn" id="addSave">Speichern</button>
+  </div>
+</form>
+<button class="btn wide" id="addBtn">+ Request hinzufügen</button>
+<button class="link plain" id="importLink" style="justify-self:center;margin:0">Mehrere importieren (cURL, Postman, HAR, OpenAPI) ↗</button>
 </div>
 
 <footer class="muted" style="text-align:center"><a href="https://github.com/wendelinstadler/envswitch" target="_blank" rel="noopener noreferrer">EnvSwitch auf GitHub</a></footer>

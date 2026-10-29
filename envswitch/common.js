@@ -286,3 +286,221 @@ AP.STATUS = {
   502: 'Bad Gateway', 503: 'Service Unavailable', 504: 'Gateway Timeout',
 };
 AP.fmtMs = ms => (ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`);
+
+// ---------- Import: cURL, Postman, HAR ----------
+// Alle Parser liefern Requests im eigenen Format. Volle Adressen werden relativ, wenn sie zu einer Umgebung des Projekts passen.
+
+// Header, die der Browser selbst setzt oder die nur stören
+AP.SKIP_HEADERS = /^(:|host$|content-length$|connection$|accept-encoding$|user-agent$|origin$|referer$|cookie$|sec-|priority$|pragma$|cache-control$|upgrade-insecure-requests$|dnt$|te$)/i;
+
+// "https://shop.ch/api/x?a=1" -> { path: "/api/x", params: [{k:"a", v:"1"}] } (oder volle Adresse, wenn keine Umgebung passt)
+AP.fromUrl = (raw, project) => {
+  const s = String(raw ?? '').trim().replace(/^\{\{\s*baseUrl\s*\}\}/, ''); // Postman: {{baseUrl}}/api/… -> /api/…
+  let u;
+  try {
+    u = new URL(s);
+  } catch {
+    // Relativer Pfad oder mit {{variable}}: Query trotzdem in Parameter aufteilen
+    const [p, q = ''] = s.split('?');
+    return { path: p || '/', params: [...new URLSearchParams(q)].map(([k, v]) => ({ k, v, on: true })) };
+  }
+  const params = [...u.searchParams].map(([k, v]) => ({ k, v, on: true }));
+  const match = project?.envs.some(e => e.origin === u.origin);
+  return { path: (match ? '' : u.origin) + decodeURI(u.pathname), params };
+};
+
+// Body-Text und Content-Type -> { mode, text }
+AP.bodyFrom = (text, ct = '') => {
+  if (text == null || text === '') return { mode: 'json', text: '' };
+  if (/form-urlencoded/i.test(ct) || (!ct && /^[\w.%-]+=[^{\[]*(&[\w.%-]+=.*)*$/.test(text) && !/^\s*[{[]/.test(text))) {
+    return { mode: 'form', text: [...new URLSearchParams(text)].map(([k, v]) => `${k} = ${v}`).join('\n') };
+  }
+  try {
+    return { mode: 'json', text: JSON.stringify(JSON.parse(text), null, 2) };
+  } catch {
+    return { mode: /json/i.test(ct) ? 'json' : 'text', text };
+  }
+};
+
+// Shell-Wörter trennen (bash: '…', "…", \ ; Windows cmd: ^)
+AP.shellWords = s => {
+  if (/\^"/.test(s)) s = s.replace(/\^\r?\n/g, ' ').replace(/\^(.)/g, '$1'); // "Copy as cURL (cmd)"
+  const out = [];
+  let cur = null;
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (c === '\\' && (s[i + 1] === '\n' || (s[i + 1] === '\r' && s[i + 2] === '\n'))) {
+      i += s[i + 1] === '\r' ? 3 : 2;
+      continue;
+    }
+    if (/\s/.test(c)) {
+      if (cur != null) out.push(cur), (cur = null);
+      i++;
+      continue;
+    }
+    cur ??= '';
+    if (c === "'") {
+      const j = s.indexOf("'", i + 1);
+      cur += s.slice(i + 1, j < 0 ? s.length : j);
+      i = j < 0 ? s.length : j + 1;
+    } else if (c === '$' && s[i + 1] === "'") {
+      // $'…' mit \n, \t, \' usw.
+      let j = i + 2;
+      while (j < s.length && s[j] !== "'") {
+        if (s[j] === '\\' && j + 1 < s.length) {
+          const n = s[j + 1];
+          cur += { n: '\n', t: '\t', r: '\r', "'": "'", '"': '"', '\\': '\\' }[n] ?? n;
+          j += 2;
+        } else cur += s[j++];
+      }
+      i = j + 1;
+    } else if (c === '"') {
+      let j = i + 1;
+      while (j < s.length && s[j] !== '"') {
+        if (s[j] === '\\' && /["\\$`]/.test(s[j + 1] ?? '')) j++;
+        cur += s[j++];
+      }
+      i = j + 1;
+    } else if (c === '\\') {
+      cur += s[i + 1] ?? '';
+      i += 2;
+    } else {
+      cur += c;
+      i++;
+    }
+  }
+  if (cur != null) out.push(cur);
+  return out;
+};
+
+// Ein oder mehrere cURL-Befehle -> Requests
+AP.parseCurls = (text, project) => {
+  const parts = String(text).split(/(?:^|\n|;|&&)\s*(?=curl(?:\.exe)?\s)/).map(x => x.trim()).filter(x => /^curl(\.exe)?\s/.test(x));
+  if (!parts.length) throw new Error('Kein cURL-Befehl gefunden. Er beginnt mit „curl “.');
+  return parts.map(part => {
+    const w = AP.shellWords(part).slice(1);
+    let method = null;
+    let url = null;
+    let get = false;
+    const headers = [];
+    const data = [];
+    for (let i = 0; i < w.length; i++) {
+      let a = w[i];
+      let val = null;
+      const eq = /^(--[\w-]+)=(.*)$/s.exec(a);
+      if (eq) [a, val] = [eq[1], eq[2]];
+      const next = () => val ?? w[++i];
+      if (a === '-X' || a === '--request') method = next().toUpperCase();
+      else if (/^-X./.test(a)) method = a.slice(2).toUpperCase();
+      else if (a === '-H' || a === '--header') {
+        const hv = next() ?? '';
+        const k = hv.indexOf(':');
+        if (k > 0) headers.push({ k: hv.slice(0, k).trim(), v: hv.slice(k + 1).trim() });
+      } else if (['-d', '--data', '--data-raw', '--data-binary', '--data-ascii', '--data-urlencode', '--json'].includes(a)) {
+        data.push(next() ?? '');
+        if (a === '--json') headers.push({ k: 'Content-Type', v: 'application/json' });
+      } else if (a === '-u' || a === '--user') headers.push({ k: 'Authorization', v: 'Basic ' + btoa(next() ?? '') });
+      else if (a === '-G' || a === '--get') get = true;
+      else if (a === '--url') url = next();
+      else if (['-b', '--cookie', '-A', '--user-agent', '-e', '--referer', '-o', '--output', '-m', '--max-time', '--connect-timeout', '-x', '--proxy', '-w', '--write-out'].includes(a)) next();
+      else if (!a.startsWith('-') && url == null) url = a;
+    }
+    if (!url) throw new Error('In einem cURL-Befehl fehlt die Adresse.');
+    let body = data.join('&');
+    if (get && body) {
+      url += (url.includes('?') ? '&' : '?') + body;
+      body = '';
+    }
+    method ??= body ? 'POST' : 'GET';
+    const ct = headers.find(x => /^content-type$/i.test(x.k))?.v ?? '';
+    const { path, params } = AP.fromUrl(url, project);
+    return AP.newReq({
+      method,
+      path,
+      params,
+      headers: headers.filter(x => !AP.SKIP_HEADERS.test(x.k)).map(x => ({ ...x, on: true })),
+      body: AP.bodyFrom(body, ct),
+    });
+  });
+};
+
+// Postman Collection v2 -> [{ name, reqs }] (ein Ordner = eine Sammlung)
+AP.parsePostman = (col, project) => {
+  const groups = new Map();
+  const add = (name, r) => {
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(r);
+  };
+  const conv = (it, auth) => {
+    const q = typeof it.request === 'string' ? { url: it.request, method: 'GET' } : it.request ?? {};
+    const rawUrl = typeof q.url === 'string' ? q.url : q.url?.raw ?? '';
+    const { path, params } = AP.fromUrl(rawUrl.replace(/:([A-Za-z_]\w*)/g, (m, n, off, s) => (s[off - 1] === '/' ? `{${n}}` : m)), project);
+    const pathVals = {};
+    for (const v of q.url?.variable ?? []) if (v.key) pathVals[v.key] = String(v.value ?? '');
+    const headers = (q.header ?? []).filter(x => x.key).map(x => ({ k: x.key, v: String(x.value ?? ''), on: !x.disabled }));
+    const a = q.auth ?? auth;
+    if (a?.type === 'bearer') {
+      const t = (a.bearer ?? []).find(x => x.key === 'token')?.value ?? '';
+      if (!headers.some(x => /^authorization$/i.test(x.k))) headers.push({ k: 'Authorization', v: `Bearer ${t}`, on: true });
+    } else if (a?.type === 'basic') {
+      const g = k => (a.basic ?? []).find(x => x.key === k)?.value ?? '';
+      if (!headers.some(x => /^authorization$/i.test(x.k))) headers.push({ k: 'Authorization', v: 'Basic ' + btoa(`${g('username')}:${g('password')}`), on: true });
+    }
+    let body = { mode: 'json', text: '' };
+    const b = q.body;
+    if (b?.mode === 'raw') body = AP.bodyFrom(b.raw ?? '', b.options?.raw?.language === 'json' ? 'application/json' : '');
+    else if (b?.mode === 'urlencoded' || b?.mode === 'formdata') body = { mode: 'form', text: (b[b.mode] ?? []).filter(x => !x.disabled && x.type !== 'file').map(x => `${x.key} = ${x.value ?? ''}`).join('\n') };
+    else if (b?.mode === 'graphql') body = { mode: 'json', text: JSON.stringify({ query: b.graphql?.query ?? '', variables: b.graphql?.variables ? JSON.parse(b.graphql.variables || '{}') : {} }, null, 2) };
+    return AP.newReq({ method: String(q.method || 'GET').toUpperCase(), path, params, pathVals, headers, body, summary: it.name ?? '' });
+  };
+  const walk = (items, folder, auth) => {
+    for (const it of items ?? []) {
+      if (Array.isArray(it.item)) walk(it.item, it.name || folder, it.auth ?? auth);
+      else add(folder, conv(it, auth));
+    }
+  };
+  const name = col.info?.name || 'Postman';
+  walk(col.item, name, col.auth);
+  return { name, groups: [...groups].map(([name, reqs]) => ({ name, reqs })) };
+};
+
+// HAR (DevTools → Netzwerk → „Alle als HAR speichern“) -> Requests, nur API-Aufrufe, ohne Duplikate
+AP.parseHar = (har, project) => {
+  const seen = new Set();
+  const reqs = [];
+  for (const e of har.log?.entries ?? []) {
+    const q = e.request;
+    if (!q?.url || !/^https?:/i.test(q.url)) continue;
+    const type = e._resourceType ?? '';
+    const resCt = e.response?.content?.mimeType ?? '';
+    const api = /^(xhr|fetch)$/i.test(type) || (!type && (/json|xml/i.test(resCt) || q.method !== 'GET'));
+    if (!api) continue;
+    const { path, params } = AP.fromUrl(q.url, project);
+    const key = `${q.method} ${path}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const headers = (q.headers ?? []).filter(x => !AP.SKIP_HEADERS.test(x.name)).map(x => ({ k: x.name, v: x.value, on: true }));
+    const ct = q.postData?.mimeType ?? '';
+    reqs.push(AP.newReq({ method: q.method, path, params, headers, body: AP.bodyFrom(q.postData?.text ?? '', ct) }));
+  }
+  return reqs;
+};
+
+// Welches Format ist das? 'openapi' | 'postman' | 'har' | 'curl' | 'envswitch' | null
+AP.detect = text => {
+  const t = String(text ?? '').trim();
+  if (/^curl(\.exe)?\s/m.test(t) && !/^\s*[{[]/.test(t)) return { kind: 'curl', data: t };
+  let j;
+  try {
+    j = JSON.parse(t);
+  } catch {
+    return null;
+  }
+  if ((j.openapi || j.swagger) && j.paths) return { kind: 'openapi', data: j };
+  if (j.log?.entries) return { kind: 'har', data: j };
+  if (Array.isArray(j.item) && (j.info?._postman_id || /postman/i.test(j.info?.schema ?? '') || j.info)) return { kind: 'postman', data: j };
+  if (j.collection?.item) return { kind: 'postman', data: j.collection };
+  if (j.app === 'EnvSwitch' || j.app === 'ApiPeek') return { kind: 'backup', data: j };
+  return null;
+};
