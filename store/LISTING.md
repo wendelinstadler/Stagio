@@ -6,79 +6,45 @@
 
 ## Short description (max. 132 characters)
 
-EN: Switch between local, test and live in one click. API tester, page error logs, header presets and git/hg branches per project.
+EN: Switch between local, test and live environments. API tester, page error logs, header presets and git/hg branches per project.
 
 DE: Mit einem Klick zwischen Lokal, Test und Live wechseln. API-Tester, Fehler-Logs, Header-Presets und git/hg-Branches pro Projekt.
 
 ## Detailed description (EN)
 
-Stagio is the toolbox for web developers who work with several environments of the same project.
+Stagio is for web developers who work on the same site in several environments, for example local, test and production.
 
-ENVIRONMENTS
-• Open the same page on Local, Test or Live in one click (keeps path and parameters)
-• Color bar and environment name on every page, so you never confuse Live with Test
-• Open pages like the back office in all environments at once, as tab groups
-• Protection for Live: actions on production need a second click
-• Server status: green/red dot per environment with response time
+Open the current page on another environment with one click. Path and parameters stay the same. Each page gets a colored bar with the environment name, and actions on production need a second click. A dot per environment shows whether its server responds.
 
-API TESTER
-• Send requests and read responses like in Swagger: JSON tree, headers, preview
-• Import OpenAPI/Swagger (finds /v3/api-docs automatically), cURL, Postman collections and HAR files
-• Variables per environment like {{token}}, the same request works on every environment
-• Compare environments: send one request to two environments and see every changed field
-• Record the API calls of a page and save them as requests
-• Star requests to send them right from the popup
+The API tester shows requests and responses like Swagger UI. It imports OpenAPI (and finds /v3/api-docs on its own), cURL, Postman collections and HAR files. Variables such as {{token}} are set per environment. One request can be sent to two environments to compare the responses field by field. You can also record the API calls of a page and save them as requests. Starred requests can be sent directly from the popup.
 
-DEBUGGING
-• Collects JavaScript errors, console.error and failed requests of your pages; the count shows on the icon
-• Header presets per environment (e.g. X-Debug: true or an Authorization header), on/off in one click
-• Clear cache, storage, service workers and cookies of exactly one environment, nothing else
-• View the same page from two environments side by side (desktop, tablet, mobile)
+The Logs tab lists JavaScript errors, console.error output and failed requests of your project pages. The number of errors is shown on the toolbar icon.
 
-TEAMS
-• Share a project as .stagio.json in your repository; secrets are replaced by variables
+Other tools: header presets per environment (for example X-Debug or an Authorization header), clearing cache, storage and cookies of a single environment, and viewing the same page from two environments side by side.
 
-BRANCHES (optional)
-• git and Mercurial per project: current branch, status, pull/push, switch with search, new branch from a ticket number, recent commits
-• Needs a small local helper (one command, macOS/Windows/Linux)
+Projects can be shared with a team as a .stagio.json file in the repository. Secret values are replaced by variables.
 
-PRIVACY
-All data stays on your computer. No analytics, no tracking, no external servers.
+Optional Branch Manager for git and Mercurial: current branch, changed files, pull, push, switching branches, creating a branch from a ticket number and recent commits. It needs a small local helper, installed with one command.
+
+All data stays in your browser. Stagio has no analytics and does not send data to any server.
 
 ## Detaillierte Beschreibung (DE)
 
-Stagio ist der Werkzeugkasten für Webentwickler, die mit mehreren Umgebungen desselben Projekts arbeiten.
+Stagio ist für Webentwickler, die an derselben Seite in mehreren Umgebungen arbeiten, zum Beispiel Lokal, Test und Produktion.
 
-UMGEBUNGEN
-• Dieselbe Seite mit einem Klick auf Lokal, Test oder Live öffnen (Pfad und Parameter bleiben)
-• Farbbalken und Umgebungsname auf jeder Seite, damit du Live nie mit Test verwechselst
-• Seiten wie das Backoffice in allen Umgebungen auf einmal öffnen, als Tab-Gruppen
-• Schutz für Live: Aktionen auf Produktion brauchen einen zweiten Klick
-• Server-Status: grüner/roter Punkt pro Umgebung mit Antwortzeit
+Die aktuelle Seite lässt sich mit einem Klick in einer anderen Umgebung öffnen, Pfad und Parameter bleiben gleich. Jede Seite bekommt einen farbigen Balken mit dem Namen der Umgebung, Aktionen auf Produktion brauchen einen zweiten Klick. Ein Punkt pro Umgebung zeigt, ob der Server antwortet.
 
-API-TESTER
-• Requests senden und Antworten lesen wie in Swagger: JSON-Baum, Header, Vorschau
-• OpenAPI/Swagger (findet /v3/api-docs selbst), cURL, Postman-Collections und HAR-Dateien importieren
-• Variablen pro Umgebung wie {{token}}, derselbe Request funktioniert in jeder Umgebung
-• Umgebungen vergleichen: ein Request an zwei Umgebungen, jedes geänderte Feld wird angezeigt
-• API-Aufrufe einer Seite aufnehmen und als Requests speichern
-• Requests mit Stern direkt im Popup senden
+Der API-Tester zeigt Requests und Antworten wie Swagger UI. Er importiert OpenAPI (und findet /v3/api-docs selbst), cURL, Postman-Collections und HAR-Dateien. Variablen wie {{token}} werden pro Umgebung gesetzt. Ein Request lässt sich an zwei Umgebungen senden, um die Antworten Feld für Feld zu vergleichen. Die API-Aufrufe einer Seite können aufgenommen und als Requests gespeichert werden. Markierte Requests lassen sich direkt im Popup senden.
 
-FEHLERSUCHE
-• Sammelt JavaScript-Fehler, console.error und fehlgeschlagene Requests; die Anzahl steht auf dem Icon
-• Header-Presets pro Umgebung (z. B. X-Debug: true), mit einem Klick an/aus
-• Cache, Storage, Service Worker und Cookies genau einer Umgebung löschen, sonst nichts
-• Dieselbe Seite aus zwei Umgebungen nebeneinander ansehen
+Der Tab Logs listet JavaScript-Fehler, console.error und fehlgeschlagene Requests deiner Projektseiten auf. Die Anzahl steht auf dem Icon.
 
-TEAMS
-• Projekt als .stagio.json im Repo teilen; Geheimnisse werden durch Variablen ersetzt
+Weitere Werkzeuge: Header-Presets pro Umgebung (zum Beispiel X-Debug oder ein Authorization-Header), Cache, Storage und Cookies einer einzelnen Umgebung löschen und dieselbe Seite aus zwei Umgebungen nebeneinander ansehen.
 
-BRANCHES (optional)
-• git und Mercurial pro Projekt: aktueller Branch, Status, Pull/Push, wechseln, neuer Branch aus Ticket-Nummer, letzte Commits
-• Braucht ein kleines lokales Hilfsprogramm (ein Befehl, macOS/Windows/Linux)
+Projekte lassen sich als .stagio.json im Repo mit dem Team teilen. Geheime Werte werden durch Variablen ersetzt.
 
-DATENSCHUTZ
-Alle Daten bleiben auf deinem Computer. Keine Analyse, kein Tracking, keine fremden Server.
+Optionaler Branch Manager für git und Mercurial: aktueller Branch, geänderte Dateien, Pull, Push, Branches wechseln, neuer Branch aus einer Ticket-Nummer und letzte Commits. Er braucht ein kleines lokales Hilfsprogramm, das mit einem Befehl installiert wird.
+
+Alle Daten bleiben in deinem Browser. Stagio hat keine Analyse und sendet keine Daten an Server.
 
 ## Single purpose
 

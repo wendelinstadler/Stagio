@@ -47,15 +47,14 @@ globalThis.I18N = (() => {
     'Desktop': 'Desktop',
     'Tablet': 'Tablet',
     'Mobil': 'Mobile',
-    '☕ Stagio unterstützen': '☕ Support Stagio',
+    'Stagio unterstützen': 'Support Stagio',
     'Gefällt dir Stagio?': 'Enjoying Stagio?',
-    '☕ Spendier einen Kaffee': '☕ Buy me a coffee',
     'Schliessen': 'Close',
     'Stagio ist kostenlos. Mit einem Kaffee hilfst du, dass es weiterentwickelt wird.': 'Stagio is free. A coffee helps keep it developed.',
-    '☕ Kaffee spendieren': '☕ Buy me a coffee',
+    'Kaffee spendieren': 'Buy me a coffee',
     'Datenschutz': 'Privacy',
     'Stagio ist kostenlos.': 'Stagio is free.',
-    '☕ Unterstützen': '☕ Support',
+    'Unterstützen': 'Support',
 
     // ---------- Popup: Tabs, Switcher ----------
     'Switcher': 'Switcher',
@@ -91,7 +90,7 @@ globalThis.I18N = (() => {
     'An + neu laden': 'On + reload',
     '⇆ Vergleichen': '⇆ Compare',
     'Diese Seite in zwei Umgebungen nebeneinander ansehen': 'View this page in two environments side by side',
-    '🧹 Daten löschen': '🧹 Clear data',
+    'Daten löschen': 'Clear data',
     'Lösche …': 'Clearing …',
     'Nur diese Adresse. Andere Seiten und Logins bleiben unberührt.': 'Only this address. Other sites and logins stay untouched.',
     'Cache': 'Cache',
@@ -134,7 +133,7 @@ globalThis.I18N = (() => {
     // ---------- Popup: Branches ----------
     'Noch kein Repo eingerichtet.': 'No repository set up yet.',
     'Unten auf „Branch Manager einrichten“ klicken und pro Projekt den Ordner angeben.': 'Click “Set up Branch Manager” below and enter the folder for each project.',
-    '⚙ Branch Manager einrichten': '⚙ Set up Branch Manager',
+    'Branch Manager einrichten': 'Set up Branch Manager',
     'sauber': 'clean',
     'Draft-Commits auf diesem Branch': 'Draft commits on this branch',
     'Push legt den Branch auf origin an': 'Push creates the branch on origin',
@@ -178,7 +177,7 @@ globalThis.I18N = (() => {
     'In den Einstellungen einschalten': 'Turn it on in the settings',
     'Fehler werden auf den Seiten deiner Projekte gesammelt.': 'Errors are collected on the pages of your projects.',
     'Keine Einträge in diesem Filter.': 'No entries for this filter.',
-    'Keine Fehler auf dieser Seite. 🎉': 'No errors on this page. 🎉',
+    'Keine Fehler auf dieser Seite.': 'No errors on this page.',
 
     // ---------- API-Tester ----------
     'API': 'API',
@@ -287,7 +286,7 @@ globalThis.I18N = (() => {
     'Sende an beide …': 'Sending to both …',
     'Ohne Zugriff auf beide Adressen geht der Vergleich nicht.': 'Comparing needs access to both addresses.',
     'Mindestens eine Umgebung hat nicht geantwortet.': 'At least one environment did not respond.',
-    '✓ Antworten sind identisch.': '✓ Responses are identical.',
+    'Antworten sind identisch.': 'Responses are identical.',
     'Feld': 'Field',
 
     // ---------- Fehlermeldungen (gemeinsam) ----------
@@ -420,7 +419,7 @@ globalThis.I18N = (() => {
     'z. B. Mein Shop': 'e.g. My shop',
     'Umgebungen (Name = Adresse)': 'Environments (name = address)',
     'Projekt anlegen': 'Create project',
-    '✓ Projekt angelegt. Öffne jetzt deine Seite und klick auf das Stagio-Icon.': '✓ Project created. Now open your page and click the Stagio icon.',
+    'Projekt angelegt. Öffne jetzt deine Seite und klick auf das Stagio-Icon.': 'Project created. Now open your page and click the Stagio icon.',
     'Loslegen': 'Get started',
     'Gleiche Seite in einer anderen Umgebung öffnen, Seiten wie das Backoffice mit einem Klick.': 'Open the same page in another environment, pages like the back office in one click.',
     'API-Tester': 'API tester',
@@ -475,7 +474,7 @@ globalThis.I18N = (() => {
     ['{0} Unterschiede', '{0} differences'],
     ['{0} Unterschiede (ignoriert: {1})', '{0} differences (ignored: {1})'],
     ['{0} geänderte Zeilen (− nur {1}, + nur {2})', '{0} changed lines (− only {1}, + only {2})'],
-    ['✓ Inhalt identisch, aber Status unterschiedlich ({0} / {1}).', '✓ Same content, but different status ({0} / {1}).'],
+    ['Inhalt identisch, aber Status unterschiedlich ({0} / {1}).', 'Same content, but different status ({0} / {1}).'],
     ['{0} Fehler auf dieser Seite', '{0} error(s) on this page'],
     ['Aufnahme {0}', 'Recording {0}'],
     ['Zeile nicht verstanden: «{0}». Beispiel: Prod 2 = https://shop.ch', 'Line not understood: «{0}». Example: Prod 2 = https://shop.ch'],

@@ -108,7 +108,7 @@ function repoRow(p, r) {
     try {
       const res = await VCS.call({ op: 'info', path: r.path }, V);
       meta.className = 'repo-meta';
-      meta.replaceChildren(h('span', {}, h('span', { className: `vcs ${res.vcs}` }, res.vcs), ' ', h('span', { className: 'ok' }, '✓ '), `Branch ${res.branch}`, res.root !== r.path && h('span', { className: 'muted' }, ` · ${res.root}`)));
+      meta.replaceChildren(h('span', {}, h('span', { className: `vcs ${res.vcs}` }, res.vcs), ' ', h('span', { className: 'ok' }, 'OK '), `Branch ${res.branch}`, res.root !== r.path && h('span', { className: 'muted' }, ` · ${res.root}`)));
     } catch (err) {
       meta.className = 'repo-meta bad';
       meta.textContent = err.message;

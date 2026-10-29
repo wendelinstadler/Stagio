@@ -908,7 +908,7 @@ function toolsRow(m) {
         },
         '⇆ Vergleichen'
       ),
-    h('button', { className: 'mini', onclick: () => clearPanel(m, panel()) }, '🧹 Daten löschen')
+    h('button', { className: 'mini', onclick: () => clearPanel(m, panel()) }, 'Daten löschen')
   );
 }
 
@@ -1004,7 +1004,7 @@ async function renderLogs() {
         )
     ),
     !shown.length
-      ? h('div', { className: 'empty muted' }, logs.length ? 'Keine Einträge in diesem Filter.' : 'Keine Fehler auf dieser Seite. 🎉')
+      ? h('div', { className: 'empty muted' }, logs.length ? 'Keine Einträge in diesem Filter.' : 'Keine Fehler auf dieser Seite.')
       : h(
           'div',
           { className: 'logs' },
@@ -1181,7 +1181,7 @@ chrome.storage.local.get(['opens', 'nudgeDone']).then(({ opens = 0, nudgeDone })
   chrome.storage.local.set({ opens: opens + 1 });
   if (nudgeDone || opens + 1 < 40) return;
   const close = h('button', { title: 'Schliessen' }, '×');
-  const box = h('div', { className: 'nudge' }, h('span', {}, 'Gefällt dir Stagio?'), h('a', { href: LINKS.support, target: '_blank', rel: 'noopener noreferrer' }, '☕ Spendier einen Kaffee'), close);
+  const box = h('div', { className: 'nudge' }, h('span', {}, 'Gefällt dir Stagio?'), h('a', { href: LINKS.support, target: '_blank', rel: 'noopener noreferrer' }, 'Kaffee spendieren'), close);
   const done = () => {
     chrome.storage.local.set({ nudgeDone: true });
     box.remove();

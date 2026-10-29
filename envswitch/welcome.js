@@ -28,7 +28,7 @@ $('form').addEventListener('submit', async ev => {
   await LS.save(projects);
   await asked;
   $('msg').className = 'ok';
-  $('msg').textContent = '✓ Projekt angelegt. Öffne jetzt deine Seite und klick auf das Stagio-Icon.';
+  $('msg').textContent = 'Projekt angelegt. Öffne jetzt deine Seite und klick auf das Stagio-Icon.';
   $('form').reset();
   $('envs').value = '';
 });

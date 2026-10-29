@@ -1485,7 +1485,7 @@ function showCompare(box, ea, eb, ra, rb, ignore) {
   else if (ra.json !== undefined && rb.json !== undefined) {
     const d = jsonDiff(ra.json, rb.json, ignore);
     body = !d.length
-      ? h('div', { className: 'cmp-same' }, ra.status === rb.status ? '✓ Antworten sind identisch.' : `✓ Inhalt identisch, aber Status unterschiedlich (${ra.status} / ${rb.status}).`)
+      ? h('div', { className: 'cmp-same' }, ra.status === rb.status ? 'Antworten sind identisch.' : `Inhalt identisch, aber Status unterschiedlich (${ra.status} / ${rb.status}).`)
       : [
           h('div', { className: 'muted' }, `${d.length >= 300 ? '300+' : d.length} Unterschiede${ignore.length ? ` (ignoriert: ${ignore.join(', ')})` : ''}`),
           h(
@@ -1498,7 +1498,7 @@ function showCompare(box, ea, eb, ra, rb, ignore) {
   } else {
     const d = lineDiff(ra.text, rb.text);
     body = !d.length
-      ? h('div', { className: 'cmp-same' }, '✓ Antworten sind identisch.')
+      ? h('div', { className: 'cmp-same' }, 'Antworten sind identisch.')
       : [
           h('div', { className: 'muted' }, `${d.length >= 300 ? '300+' : d.length} geänderte Zeilen (− nur ${ea.name}, + nur ${eb.name})`),
           h('pre', { className: 'out cmp-lines' }, d.map(x => h('div', { className: `l-${x.kind}` }, `${x.kind === 'added' ? '+' : '−'} ${String(x.line).padStart(4)}  ${x.text}`))),
