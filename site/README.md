@@ -1,20 +1,23 @@
 # Website (stagio.dev)
 
-Statische Seite, ohne Build. Inhalt: `index.html` (Start), `privacy.html` (Datenschutz, Link für den Web Store), `helper.html` (Anleitung Hilfsprogramm). Sprache Deutsch/Englisch per Knopf.
+Statische Seite ohne Build: `index.html` (Start), `privacy.html` (Datenschutz, Link für den Web Store), `helper.html` (Anleitung Hilfsprogramm). Deutsch/Englisch per Knopf.
 
-## Veröffentlichen (kostenlos, auch aus privatem Repo)
+## Veröffentlichen mit Netlify (gratis, auch aus privatem Repo)
 
-**Cloudflare Pages** (empfohlen):
-1. dash.cloudflare.com → Workers & Pages → Create → Pages → mit GitHub verbinden → Repo wählen.
-2. Build command: leer lassen. Output directory: `site`.
-3. Unter „Custom domains“ `stagio.dev` hinzufügen.
+1. netlify.com mit GitHub anmelden → „Add new site“ → „Import from Git“ → dieses Repo.
+2. Build command leer lassen, Publish directory: `site`.
+3. „Domain management“ → `stagio.dev` hinzufügen.
+4. Bei Namecheap → Domain → „Advanced DNS“:
+   - `A`-Record, Host `@`, Wert `75.2.60.5`
+   - `CNAME`, Host `www`, Wert `<dein-name>.netlify.app`
+5. Nach spätestens einer Stunde läuft die Seite, HTTPS richtet Netlify selbst ein.
 
-**Netlify:** app.netlify.com → „Add new site“ → Repo wählen, Publish directory `site`, dann Domain verbinden. Oder den Ordner `site` per Drag & Drop hochladen.
+## E-Mail
+
+Namecheap → Domain → „Redirect Email“: `hello@stagio.dev` an die eigene Adresse weiterleiten (gratis).
 
 ## Anpassen
 
 In `lang.js` oben:
-- `store`: Link zum Chrome Web Store, sobald die Extension veröffentlicht ist (bis dahin steht „Bald im Chrome Web Store“).
-- `support`: dein Buy-Me-a-Coffee-Link.
-
-Die Kontakt-Adresse `hello@stagio.dev` steht in `index.html` und `privacy.html`.
+- `store`: Link zum Chrome Web Store, sobald veröffentlicht (bis dahin steht „Bald im Chrome Web Store“).
+- `support`: Buy-Me-a-Coffee-Link.
