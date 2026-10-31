@@ -28,6 +28,8 @@ Optional Branch Manager for git and Mercurial: current branch, changed files, pu
 
 All data stays in your browser. Stagio has no analytics and does not send data to any server.
 
+Stagio is provided as is, without warranty. Actions such as clearing data, sending requests or pushing branches are started by you; check before acting on production systems.
+
 ## Detaillierte Beschreibung (DE)
 
 Stagio ist für Webentwickler, die an derselben Seite in mehreren Umgebungen arbeiten, zum Beispiel Lokal, Test und Produktion.
@@ -45,6 +47,8 @@ Projekte lassen sich als .stagio.json im Repo mit dem Team teilen. Geheime Werte
 Optionaler Branch Manager für git und Mercurial: aktueller Branch, geänderte Dateien, Pull, Push, Branches wechseln, neuer Branch aus einer Ticket-Nummer und letzte Commits. Er braucht ein kleines lokales Hilfsprogramm, das mit einem Befehl installiert wird.
 
 Alle Daten bleiben in deinem Browser. Stagio hat keine Analyse und sendet keine Daten an Server.
+
+Stagio wird ohne Gewähr bereitgestellt. Aktionen wie Daten löschen, Requests senden oder Branches pushen startest du selbst; prüfe sie vor Aktionen auf Produktivsystemen.
 
 ## Single purpose
 
