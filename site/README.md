@@ -1,4 +1,4 @@
-# Website (stagio.dev)
+# Website (usestagio.app)
 
 Statische Seite ohne Build: `index.html` (Start), `privacy.html` (Datenschutz, Link für den Web Store), `helper.html` (Anleitung Hilfsprogramm). Deutsch/Englisch per Knopf.
 
@@ -6,7 +6,7 @@ Statische Seite ohne Build: `index.html` (Start), `privacy.html` (Datenschutz, L
 
 1. netlify.com mit GitHub anmelden → „Add new site“ → „Import from Git“ → dieses Repo.
 2. Build command leer lassen, Publish directory: `site`.
-3. „Domain management“ → `stagio.dev` hinzufügen.
+3. „Domain management“ → `usestagio.app` hinzufügen.
 4. Bei Namecheap → Domain → „Advanced DNS“:
    - `A`-Record, Host `@`, Wert `75.2.60.5`
    - `CNAME`, Host `www`, Wert `<dein-name>.netlify.app`
@@ -14,7 +14,7 @@ Statische Seite ohne Build: `index.html` (Start), `privacy.html` (Datenschutz, L
 
 ## E-Mail
 
-Namecheap → Domain → „Redirect Email“: `hello@stagio.dev` an die eigene Adresse weiterleiten (gratis).
+Namecheap → Domain → „Redirect Email“: `hello@usestagio.app` an die eigene Adresse weiterleiten (gratis).
 
 ## Anpassen
 

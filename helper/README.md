@@ -14,7 +14,7 @@ Or, inside this folder: `node install.js <extension-id>`.
 
 Then click **Check connection** in the settings. If it does not work, quit Chrome completely once and reopen it.
 
-The program is copied to `~/.stagio` (macOS/Linux) or `%LOCALAPPDATA%\Stagio` (Windows) and registered for Chrome, Edge, Brave and Chromium. Run it on every computer you use. Uninstall: `npx stagio-helper --uninstall`. More: https://stagio.dev/helper.html
+The program is copied to `~/.stagio` (macOS/Linux) or `%LOCALAPPDATA%\Stagio` (Windows) and registered for Chrome, Edge, Brave and Chromium. Run it on every computer you use. Uninstall: `npx stagio-helper --uninstall`. More: https://usestagio.app/helper.html
 
 ## What it may do
 

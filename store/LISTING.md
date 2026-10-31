@@ -1,6 +1,6 @@
 # Chrome Web Store listing
 
-> Name: **Stagio** · Website: https://stagio.dev · Privacy policy URL: https://stagio.dev/privacy.html · Support: https://buymeacoffee.com/wendelinstadler
+> Name: **Stagio** · Website: https://usestagio.app · Privacy policy URL: https://usestagio.app/privacy.html · Support: https://buymeacoffee.com/wendelinstadler
 
 **Category:** Developer Tools · **Language:** English (+ German)
 
@@ -65,7 +65,7 @@ A developer tool for working with the environments (local, test, production) of 
 | `cookies` | “Clear data”: removes cookies of exactly one host, only when the user ticks it. |
 | optional host permissions | Requested per address the user adds to a project (or explicitly records/tests). No access to other sites. |
 
-**Remote code:** none. **Data collection:** none (see https://stagio.dev/privacy.html).
+**Remote code:** none. **Data collection:** none (see https://usestagio.app/privacy.html).
 
 ## Assets
 

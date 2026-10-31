@@ -16,7 +16,7 @@ Stagio is a developer tool. It does **not** collect, transmit, sell or share any
 
 **Deleting data:** removing the extension deletes all stored data. The helper can be removed with `npx stagio-helper --uninstall`.
 
-Contact: hello@stagio.dev · Website: https://stagio.dev/privacy.html
+Contact: hello@usestagio.app · Website: https://usestagio.app/privacy.html
 
 ## Deutsch
 

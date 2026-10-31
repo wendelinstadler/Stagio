@@ -1,6 +1,6 @@
 # Stagio
 
-> Private repository. Website: https://stagio.dev (folder `site/`). Helper on npm: `stagio-helper`.
+> Private repository. Website: https://usestagio.app (folder `site/`). Helper on npm: `stagio-helper`.
 
 Chrome extension for web developers who work with several environments of the same project (local, test, live).
 

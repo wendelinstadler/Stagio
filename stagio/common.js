@@ -2,8 +2,8 @@ globalThis.T ??= s => s;
 
 // Links an einer Stelle: Website und Unterstützen-Seite (Buy Me a Coffee)
 globalThis.LINKS = {
-  site: 'https://stagio.dev',
-  privacy: 'https://stagio.dev/privacy.html',
+  site: 'https://usestagio.app',
+  privacy: 'https://usestagio.app/privacy.html',
   support: 'https://buymeacoffee.com/wendelinstadler',
 };
 // Gemeinsame Logik für Popup, Service Worker und Seiten-Markierung.
