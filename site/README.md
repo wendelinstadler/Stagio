@@ -22,6 +22,3 @@ In `lang.js` oben:
 - `store`: Link zum Chrome Web Store, sobald veröffentlicht (bis dahin steht „Bald im Chrome Web Store“).
 - `support`: Buy-Me-a-Coffee-Link.
 
-## Vor dem Öffentlichmachen
-
-- In `imprint.html` die Platzhalter `[Strasse Nr.]` und `[PLZ Ort]` (Deutsch und Englisch) mit der echten Adresse ersetzen. In der Schweiz verlangt das UWG Name und Kontaktadresse, auch bei kostenlosen Angeboten.
