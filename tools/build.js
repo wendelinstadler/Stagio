@@ -6,7 +6,7 @@ const path = require('path');
 const zlib = require('zlib');
 
 const root = path.join(__dirname, '..');
-const src = path.join(root, 'envswitch');
+const src = path.join(root, 'stagio');
 const { version } = JSON.parse(fs.readFileSync(path.join(src, 'manifest.json'), 'utf8'));
 const SKIP = /(^|\/)(\.DS_Store|README\.md|Thumbs\.db)$/;
 

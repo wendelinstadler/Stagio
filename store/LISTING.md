@@ -71,4 +71,4 @@ A developer tool for working with the environments (local, test, production) of 
 
 - Screenshots 1280×800: `store/screenshot-*.png`
 - Small promo tile 440×280: `store/promo-440x280.png`
-- Icon 128×128: `envswitch/icons/128.png`
+- Icon 128×128: `stagio/icons/128.png`

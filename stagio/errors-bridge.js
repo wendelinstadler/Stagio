@@ -1,10 +1,10 @@
 // Leitet Meldungen aus errors-main.js (Seite) an die Extension weiter.
 (() => {
-  if (globalThis.__envswitchBridge) return;
-  globalThis.__envswitchBridge = true;
+  if (globalThis.__stagioBridge) return;
+  globalThis.__stagioBridge = true;
   addEventListener('message', e => {
     const d = e.data;
-    if (e.source !== window || !d || d.__envswitch !== 'log') return;
+    if (e.source !== window || !d || d.__stagio !== 'log') return;
     try {
       chrome.runtime.sendMessage({ type: 'log', entry: { kind: d.kind, msg: d.msg, src: d.src, t: d.t } });
     } catch {

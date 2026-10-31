@@ -554,7 +554,7 @@ globalThis.I18N = (() => {
   const detect = () => ((globalThis.chrome?.i18n?.getUILanguage?.() || globalThis.navigator?.language || 'en').toLowerCase().startsWith('de') ? 'de' : 'en');
   let lang = (() => {
     try {
-      return localStorage.getItem('envswitch.lang') || null;
+      return localStorage.getItem('stagio.lang') || localStorage.getItem('envswitch.lang') || null;
     } catch {
       return null;
     }
@@ -639,7 +639,7 @@ globalThis.I18N = (() => {
         const want = prefs?.lang && prefs.lang !== 'auto' ? prefs.lang : detect();
         if (want !== lang) lang = want;
         try {
-          localStorage.setItem('envswitch.lang', lang);
+          localStorage.setItem('stagio.lang', lang);
         } catch {}
       } catch {}
       return lang;

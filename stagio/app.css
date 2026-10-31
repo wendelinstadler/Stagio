@@ -1,4 +1,4 @@
-/* Gleiche Grundfarben wie EnvSwitch, Methodenfarben wie Swagger UI. */
+/* Gleiche Grundfarben wie Stagio, Methodenfarben wie Swagger UI. */
 :root {
   --bg:#fff; --fg:#1c1c1e; --muted:#6b6b70; --line:#e2e2e6; --accent:#1a73e8; --soft:#f1f3f6; --bad:#b3261e;
   --get:#61affe; --post:#49cc90; --put:#fca130; --patch:#50e3c2; --delete:#f93e3e; --head:#9012fe; --options:#0d5aa7;
@@ -21,7 +21,7 @@ h1, h2, h3 { margin:0; }
 .bad { color:var(--bad); font-size:12px; }
 .bad:empty { display:none; }
 
-/* Knöpfe und Felder wie EnvSwitch */
+/* Knöpfe und Felder wie Stagio */
 input, textarea, select { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; }
 input:focus, textarea:focus, select:focus { outline:2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset:-1px; border-color:var(--accent); }
 textarea { font-family:var(--mono); font-size:12px; resize:vertical; }
@@ -169,7 +169,7 @@ dialog::backdrop { background:rgba(0,0,0,.35); }
 #toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:20; max-width:min(560px, calc(100vw - 32px)); padding:9px 14px; border-radius:8px; background:var(--fg); color:var(--bg); box-shadow:0 4px 16px rgba(0,0,0,.2); }
 #toast.bad { background:var(--bad); color:#fff; }
 
-/* EnvSwitch: Projekt in der Seitenleiste */
+/* Stagio: Projekt in der Seitenleiste */
 .side-head { display:flex; align-items:baseline; gap:8px; }
 .side-head h2 { font-size:15px; color:var(--fg); overflow-wrap:anywhere; }
 .link.on { color:var(--accent); font-weight:600; }

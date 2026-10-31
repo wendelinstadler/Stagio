@@ -23,7 +23,7 @@ Chrome extension for web developers who work with several environments of the sa
 ## Install (development)
 
 1. Download or clone this repository.
-2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and pick the `envswitch` folder.
+2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and pick the `stagio` folder.
 3. Branch Manager (optional): copy the command from Stagio → Settings and run it, e.g. `npx stagio-helper <extension-id>`.
 
 ## Release checklist
@@ -32,7 +32,7 @@ Chrome extension for web developers who work with several environments of the sa
 2. Helper: `npm publish` (package `stagio-helper`, only the `helper/` files are published).
 3. Website: deploy `site/` (see `site/README.md`), set the store link in `site/lang.js`.
 
-Build the Web Store ZIP: `npm run build` → `dist/envswitch-<version>.zip`.
+Build the Web Store ZIP: `npm run build` → `dist/stagio-<version>.zip`.
 
 ## Privacy
 
@@ -44,4 +44,4 @@ All data stays on your computer. No analytics, no tracking, no external servers.
 
 ---
 
-**Deutsch:** Stagio wechselt mit einem Klick zwischen Lokal, Test und Live, testet APIs im Swagger-Stil, sammelt Fehler deiner Seiten und verwaltet git- und hg-Branches pro Projekt. Installieren: `chrome://extensions` → Entwicklermodus → „Entpackte Erweiterung laden“ → Ordner `envswitch`. Die Sprache folgt Chrome und lässt sich in den Einstellungen ändern.
+**Deutsch:** Stagio wechselt mit einem Klick zwischen Lokal, Test und Live, testet APIs im Swagger-Stil, sammelt Fehler deiner Seiten und verwaltet git- und hg-Branches pro Projekt. Installieren: `chrome://extensions` → Entwicklermodus → „Entpackte Erweiterung laden“ → Ordner `stagio`. Die Sprache folgt Chrome und lässt sich in den Einstellungen ändern.
