@@ -15,7 +15,10 @@ const { execFileSync } = require('child_process');
 const NAME = 'com.stagio.helper';
 const args = process.argv.slice(2);
 const uninstall = args.includes('--uninstall');
+// Feste ID der Entwicklerversion (key im Manifest). Die Store-Version hat eine eigene ID, die hier ergänzt wird, sobald sie feststeht.
+const DEFAULT_IDS = ['elppjgkmfkffckfinlnhpolgmcelfgnj'];
 const ids = args.filter(a => /^[a-p]{32}$/.test(a));
+if (!ids.length && !args.includes('--uninstall')) ids.push(...DEFAULT_IDS);
 const bad = args.filter(a => !a.startsWith('--') && !/^[a-p]{32}$/.test(a));
 
 const de = /^de/i.test(process.env.LC_ALL || process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale || '');
@@ -64,10 +67,6 @@ if (uninstall) {
   process.exit(0);
 }
 
-if (!ids.length) {
-  console.error(say('Bitte die Extension-ID angeben, z. B.: npx stagio-helper <ID>\nDie ID steht in Stagio unter Einstellungen → Branch Manager.', 'Please pass the extension ID, e.g.: npx stagio-helper <ID>\nThe ID is shown in Stagio under Settings → Branch Manager.'));
-  process.exit(1);
-}
 
 // Bisher erlaubte IDs behalten (z. B. Arbeits- und Privat-Chrome)
 const known = new Set([...ids, ...legacyIds.filter(Boolean)]);

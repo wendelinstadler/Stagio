@@ -35,7 +35,13 @@ const parts = [];
 const central = [];
 let offset = 0;
 for (const rel of files) {
-  const data = fs.readFileSync(path.join(src, rel));
+  let data = fs.readFileSync(path.join(src, rel));
+  // Der feste Entwicklungs-Schlüssel gehört nicht ins Store-Paket (der Store vergibt eine eigene ID)
+  if (rel === 'manifest.json') {
+    const m = JSON.parse(data);
+    delete m.key;
+    data = Buffer.from(JSON.stringify(m, null, 2) + '\n');
+  }
   const comp = zlib.deflateRawSync(data, { level: 9 });
   const name = Buffer.from(rel, 'utf8');
   const crc = crc32(data);

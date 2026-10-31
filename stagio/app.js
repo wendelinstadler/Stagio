@@ -1231,8 +1231,9 @@ function importSpec(spec, src) {
 /* ---------- Backup (Projekte und Requests) ---------- */
 
 $('exportBtn').addEventListener('click', async () => {
-  const { marker } = await chrome.storage.local.get('marker');
-  const data = JSON.stringify({ app: 'Stagio', version: 2, projects: S.projects, apiCols: S.cols, marker: marker !== false }, null, 2);
+  const { marker, vcs, prefs } = await chrome.storage.local.get(['marker', 'vcs', 'prefs']);
+  // Alles, was man für einen Umzug braucht: Projekte, Requests, Branch-Manager-Ordner, Einstellungen
+  const data = JSON.stringify({ app: 'Stagio', version: 3, projects: S.projects, apiCols: S.cols, marker: marker !== false, vcs, prefs }, null, 2);
   const a = h('a', { href: URL.createObjectURL(new Blob([data], { type: 'application/json' })), download: `stagio-backup-${new Date().toISOString().slice(0, 10)}.json` });
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -1249,6 +1250,13 @@ $('importFile').addEventListener('change', async () => {
     if (d.app === 'Stagio' || d.app === 'EnvSwitch') {
       projects = d.projects ?? [];
       cols = d.apiCols ?? [];
+      // Einstellungen nur übernehmen, wenn hier noch keine gesetzt sind
+      const cur = await chrome.storage.local.get(['vcs', 'prefs']);
+      const extra = {};
+      if (d.vcs && !Object.keys(cur.vcs?.repos ?? {}).length) extra.vcs = d.vcs;
+      if (d.prefs && !cur.prefs) extra.prefs = d.prefs;
+      if (typeof d.marker === 'boolean') extra.marker = d.marker;
+      if (Object.keys(extra).length) await chrome.storage.local.set(extra);
     } else if (d.app === 'ApiPeek') {
       // Backup der früheren eigenständigen ApiPeek-Extension: Websites werden ein Projekt
       const envs = (d.envs ?? []).map(e => ({ name: e.name, origin: new URL(e.baseUrl).origin, vars: e.vars ?? '' }));

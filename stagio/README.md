@@ -49,3 +49,10 @@ Einrichten unter **Einstellungen** (Rechtsklick aufs Icon → Optionen, oder im 
 - **Einführung** beim ersten Installieren.
 - **Hilfsprogramm per npx:** `npx stagio-helper <ID>`, wird nach `~/.stagio` bzw. `%LOCALAPPDATA%\Stagio` kopiert.
 - Store-Unterlagen in `store/`, Datenschutz in `PRIVACY.md`, Build mit `npm run build`.
+
+## 3.1.1
+
+- Fix: Meldung „You need to request host permissions …“. Die Netzwerk-Logs und die Aufnahme starten jetzt erst, wenn mindestens eine Adresse erlaubt ist.
+- Feste Extension-ID für die entpackte Version (`key` im Manifest): Umbenennen oder Verschieben des Ordners ändert die ID nicht mehr, die Daten bleiben erhalten. Das Store-Paket (`npm run build`) enthält den Schlüssel nicht.
+- Backup enthält jetzt auch Branch-Manager-Ordner und Einstellungen.
+- Hilfsprogramm: `npx stagio-helper` ohne ID richtet es für die feste ID ein.

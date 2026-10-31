@@ -258,26 +258,52 @@ async function netLog(d, what) {
   addLog(d.tabId, { kind: 'net', msg: `${d.method} ${what}`, src: d.url, rtype: d.type, t: Date.now() });
 }
 
+// webRequest liefert nur Ereignisse, wenn die Extension mindestens eine Adresse lesen darf.
+// Ohne erlaubte Adresse meldet Chrome sonst „You need to request host permissions …“ und
+// ignoriert die Listener dauerhaft. Darum erst anmelden, wenn eine Adresse erlaubt ist,
+// und bei neuen oder entzogenen Rechten neu anmelden.
 const WEB = { urls: ['http://*/*', 'https://*/*'] };
-chrome.webRequest.onCompleted.addListener(d => {
+function wrCompleted(d) {
   if (d.statusCode >= 400) netLog(d, String(d.statusCode));
   recDone(d);
-}, WEB, ['responseHeaders']);
-chrome.webRequest.onErrorOccurred.addListener(d => {
+}
+function wrError(d) {
   // Abgebrochene oder von anderen Extensions blockierte Requests sind keine Fehler der Seite
   if (!/ERR_ABORTED|ERR_BLOCKED_BY_CLIENT|ERR_CACHE_MISS|ERR_BLOCKED_BY_RESPONSE/.test(d.error)) netLog(d, d.error.replace('net::', ''));
   recDone(d);
-}, WEB);
-// Neue Seite im Tab: alte Meldungen weg
-chrome.webRequest.onBeforeRequest.addListener(
-  d => {
-    if (d.type === 'main_frame' && d.tabId >= 0) clearLogs(d.tabId);
-    recStart(d);
-  },
-  WEB,
-  ['requestBody']
-);
-chrome.webRequest.onSendHeaders.addListener(recHeaders, WEB, ['requestHeaders', 'extraHeaders']);
+}
+function wrBefore(d) {
+  // Neue Seite im Tab: alte Meldungen weg
+  if (d.type === 'main_frame' && d.tabId >= 0) clearLogs(d.tabId);
+  recStart(d);
+}
+let wrOn = false;
+function wrOff() {
+  chrome.webRequest.onCompleted.removeListener(wrCompleted);
+  chrome.webRequest.onErrorOccurred.removeListener(wrError);
+  chrome.webRequest.onBeforeRequest.removeListener(wrBefore);
+  chrome.webRequest.onSendHeaders.removeListener(recHeaders);
+  wrOn = false;
+}
+async function syncWebRequest() {
+  const { origins = [] } = await chrome.permissions.getAll();
+  const want = origins.length > 0;
+  if (want === wrOn) return;
+  if (!want) return wrOff();
+  try {
+    chrome.webRequest.onCompleted.addListener(wrCompleted, WEB, ['responseHeaders']);
+    chrome.webRequest.onErrorOccurred.addListener(wrError, WEB);
+    chrome.webRequest.onBeforeRequest.addListener(wrBefore, WEB, ['requestBody']);
+    chrome.webRequest.onSendHeaders.addListener(recHeaders, WEB, ['requestHeaders', 'extraHeaders']);
+    wrOn = true;
+  } catch (err) {
+    console.warn('webRequest', err);
+    wrOff();
+  }
+}
+syncWebRequest();
+chrome.permissions.onAdded.addListener(syncWebRequest);
+chrome.permissions.onRemoved.addListener(syncWebRequest);
 chrome.tabs.onRemoved.addListener(tabId => {
   clearLogs(tabId);
   // Sitzungsregel einer Vergleichsseite aufräumen
