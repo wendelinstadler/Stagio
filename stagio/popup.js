@@ -108,6 +108,11 @@ function openApi(projectId) {
   window.close();
 }
 $('api').addEventListener('click', () => openApi(null));
+$('settingsBtn').addEventListener('click', () => {
+  chrome.runtime.openOptionsPage();
+  window.close();
+});
+$('themeBtn').addEventListener('click', () => THEME.toggle());
 $('importLink').addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'open-api', url: tab?.url, projectId: addTarget()?.id ?? null, import: true });
   window.close();
@@ -149,13 +154,30 @@ function showView(id) {
 }
 let ready = false;
 
+// Das Formular ist zu, bis man auf „+ Projekt hinzufügen“ oder „Bearbeiten“ klickt (ohne Projekt ist es offen).
+let formOpen = false;
+let projectCount = 0;
+function showFormState() {
+  const open = formOpen || !!editing || projectCount === 0;
+  $('form').hidden = !open;
+  $('showForm').hidden = open;
+  $('cancel').hidden = !(editing || (formOpen && projectCount > 0));
+}
+
 function resetForm() {
   editing = null;
+  formOpen = false;
   $('form').reset();
   $('err').textContent = '';
   $('formTitle').textContent = 'Projekt hinzufügen';
-  $('cancel').hidden = true;
+  showFormState();
 }
+
+$('showForm').addEventListener('click', () => {
+  formOpen = true;
+  showFormState();
+  $('name').focus();
+});
 
 function projectCard(p, notAllowed) {
   const pages = p.pages ?? [];
@@ -192,7 +214,8 @@ function projectCard(p, notAllowed) {
               $('envs').value = p.envs.map(e => `${e.name} = ${e.origin}`).join('\n');
               $('pages').value = LS.pagesText(pages);
               $('formTitle').textContent = 'Projekt bearbeiten';
-              $('cancel').hidden = false;
+              showFormState();
+              $('form').scrollIntoView({ block: 'start', behavior: 'smooth' });
               $('name').focus();
             },
           },
@@ -291,6 +314,8 @@ async function render() {
     }
   }
 
+  projectCount = projects.length;
+  showFormState();
   renderQuick(projects, m);
 
   const gaps = $('marker').checked ? await Promise.all(projects.map(p => missing(p.envs))) : projects.map(() => []);
@@ -1008,17 +1033,112 @@ async function renderLogs() {
       : h(
           'div',
           { className: 'logs' },
-          shown.map(x =>
-            h(
-              'div',
-              { className: `log k-${x.kind}` },
-              h('span', { className: 'lk' }, KINDS[x.kind] ?? x.kind),
-              h('div', { className: 'lm' }, h('div', {}, x.msg, x.n > 1 && h('span', { className: 'ln' }, ` ${x.n}×`)), x.src && h('small', { title: x.src }, x.src)),
-              h('span', { className: 'lt' }, new Date(x.t).toLocaleTimeString(I18N.locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
-            )
-          )
+          shown.map(x => logRow(x, KINDS))
         )
   );
+}
+
+// Ein Log-Eintrag: Klick klappt die Details auf (Payload, Header, Stack …)
+const openLogs = new Set();
+function logRow(x, KINDS) {
+  const key = `${x.kind}|${x.msg}|${x.src}`;
+  const time = new Date(x.t).toLocaleTimeString(I18N.locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const isOpen = openLogs.has(key);
+  const row = h(
+    'div',
+    { className: `log k-${x.kind}${isOpen ? ' open' : ''}` },
+    h(
+      'button',
+      { className: 'lhead2', 'aria-expanded': String(isOpen), title: 'Details anzeigen' },
+      h('span', { className: 'lk' }, KINDS[x.kind] ?? x.kind),
+      h('div', { className: 'lm' }, h('div', {}, x.msg, x.n > 1 && h('span', { className: 'ln' }, ` ${x.n}×`)), x.src && h('small', { title: x.src }, x.src)),
+      h('span', { className: 'lt' }, time, h('span', { className: 'lchev' }, '›'))
+    ),
+    isOpen && logDetail(x)
+  );
+  row.firstChild.addEventListener('click', () => {
+    if (openLogs.has(key)) openLogs.delete(key);
+    else openLogs.add(key);
+    row.replaceWith(logRow(x, KINDS));
+  });
+  return row;
+}
+
+function logDetail(x) {
+  const d = x.detail ?? {};
+  const pre = (text, cls = '') => h('pre', { className: 'lpre ' + cls, 'data-notr': '' }, text);
+  const section = (title, ...kids) => h('div', { className: 'lsec' }, h('b', {}, title), ...kids);
+  const kv = rows => h('table', { className: 'lkv', 'data-notr': '' }, h('tbody', {}, rows.map(([k, v]) => h('tr', {}, h('td', {}, k), h('td', {}, v)))));
+  const pretty = s => {
+    try {
+      return JSON.stringify(JSON.parse(s), null, 2);
+    } catch {
+      return s;
+    }
+  };
+  const copyBtn = (label, text) => {
+    const b = h('button', { className: 'mini' }, label);
+    b.addEventListener('click', async ev => {
+      ev.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(text);
+        b.textContent = T('Kopiert');
+      } catch {}
+    });
+    return b;
+  };
+  const parts = [];
+  if (x.kind === 'net') {
+    if (!x.detail) return h('div', { className: 'ldet muted' }, 'Keine Details gespeichert (Eintrag stammt aus einer älteren Version).');
+    const sl = (d.statusLine || '').replace(/^HTTP\/[\d.]+\s*/, '');
+    const status = d.status ? (sl.startsWith(String(d.status)) ? sl : `${d.status}${sl ? ` · ${sl}` : ''}`) : d.error;
+    parts.push(
+      kv(
+        [
+          ['URL', d.url],
+          ['Methode', d.method],
+          ['Status', status],
+          ['Typ', d.type],
+          d.ms != null && ['Dauer', `${d.ms} ms`],
+          d.ip && ['IP', d.ip],
+          d.fromCache && ['Cache', 'ja'],
+        ].filter(Boolean).map(([k, v]) => [T(k), v])
+      )
+    );
+    if (d.body) parts.push(section('Payload', pre(pretty(d.body))));
+    if (d.reqHeaders?.length) parts.push(section('Request-Header', kv(d.reqHeaders)));
+    if (d.resHeaders?.length) parts.push(section('Antwort-Header', kv(d.resHeaders)));
+    parts.push(h('div', { className: 'muted' }, 'Den Inhalt der Antwort gibt Chrome an Extensions nicht weiter. Mit „Im API-Tester öffnen“ kannst du den Request erneut senden und die Antwort sehen.'));
+    const q = s => `'${String(s).replace(/'/g, `'\\''`)}'`;
+    const curl = ['curl', d.method !== 'GET' && `-X ${d.method}`, q(d.url), ...(d.reqHeaders ?? []).filter(([k]) => !AP.SKIP_HEADERS.test(k)).map(([k, v]) => `-H ${q(`${k}: ${v}`)}`), d.body && `--data-raw ${q(d.body)}`].filter(Boolean).join(' ');
+    const toApi = h('button', { className: 'mini' }, 'Im API-Tester öffnen');
+    toApi.addEventListener('click', async ev => {
+      ev.stopPropagation();
+      const projects = await LS.projects();
+      const m = LS.match(projects, d.url) ?? LS.match(projects, tab?.url ?? '');
+      if (!m) return;
+      const { path, params } = AP.fromUrl(d.url, m.project);
+      const ct = (d.reqHeaders ?? []).find(([k]) => /^content-type$/i.test(k))?.[1] ?? '';
+      const req = AP.newReq({ method: d.method, path, params, headers: (d.reqHeaders ?? []).filter(([k]) => !AP.SKIP_HEADERS.test(k)).map(([k, v]) => ({ k, v, on: true })), body: AP.bodyFrom(d.body ?? '', ct), summary: `${d.method} ${d.status || d.error}` });
+      const { apiCols = [] } = await chrome.storage.local.get('apiCols');
+      let col = apiCols.find(c => c.projectId === m.project.id && c.name === 'Aus Logs');
+      if (!col) apiCols.push((col = { id: AP.id(), name: 'Aus Logs', projectId: m.project.id, reqs: [] }));
+      col.reqs.push(req);
+      await chrome.storage.local.set({ apiCols });
+      chrome.runtime.sendMessage({ type: 'open-api', url: tab?.url, projectId: m.project.id, reqId: req.id });
+      window.close();
+    });
+    parts.push(h('div', { className: 'acts' }, copyBtn('Als cURL kopieren', curl), toApi, copyBtn('URL kopieren', d.url)));
+  } else {
+    const rows = [[T('Meldung'), x.msg], x.src && [T('Quelle'), x.src], d.page && [T('Seite'), d.page]].filter(Boolean);
+    parts.push(kv(rows));
+    if (d.full && d.full !== x.msg) parts.push(section('Ausgabe', pre(d.full)));
+    if (d.value) parts.push(section('Wert', pre(d.value)));
+    if (d.stack) parts.push(section('Stacktrace', pre(d.stack)));
+    if (!x.detail) parts.push(h('div', { className: 'muted' }, 'Keine weiteren Details gespeichert (Eintrag stammt aus einer älteren Version).'));
+    parts.push(h('div', { className: 'acts' }, copyBtn('Kopieren', [x.msg, x.src, d.full, d.stack].filter(Boolean).join('\n\n'))));
+  }
+  return h('div', { className: 'ldet' }, parts);
 }
 
 // ---------- 4. Requests aufnehmen ----------

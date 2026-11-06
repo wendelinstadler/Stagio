@@ -229,6 +229,7 @@ async function addLog(tabId, e) {
   if (last && last.kind === e.kind && last.msg === e.msg && last.src === e.src) {
     last.n = (last.n ?? 1) + 1;
     last.t = e.t;
+    if (e.detail) last.detail = e.detail;
   } else {
     list.push(e);
     if (list.length > 200) list.shift();
@@ -253,9 +254,37 @@ async function projectTab(tabId) {
   return t?.url && LS.match(await LS.projects(), t.url) ? t : null;
 }
 async function netLog(d, what) {
+  const p = PENDING.get(d.requestId);
+  PENDING.delete(d.requestId);
   // Das Favicon fragt der Browser selbst an, das ist kein Fehler der Seite
   if (/\/favicon\.ico(\?|$)/.test(d.url) || !(await projectTab(d.tabId))) return;
-  addLog(d.tabId, { kind: 'net', msg: `${d.method} ${what}`, src: d.url, rtype: d.type, t: Date.now() });
+  const detail = {
+    method: d.method,
+    url: d.url,
+    status: d.statusCode ?? null,
+    statusLine: d.statusLine ?? '',
+    error: d.error ?? '',
+    type: d.type,
+    ip: d.ip ?? '',
+    fromCache: !!d.fromCache,
+    ms: p ? Math.round(d.timeStamp - p.t0) : null,
+    reqHeaders: p?.reqHeaders ?? [],
+    resHeaders: (d.responseHeaders ?? []).map(h => [h.name, h.value ?? '']),
+    body: p?.body ?? '',
+  };
+  addLog(d.tabId, { kind: 'net', msg: `${d.method} ${what}`, src: d.url, rtype: d.type, detail, t: Date.now() });
+}
+
+// Laufende Requests merken (Header und Payload), damit fehlgeschlagene in den Logs Details zeigen.
+const PENDING = new Map();
+function trackStart(d) {
+  if (d.tabId < 0) return;
+  if (PENDING.size > 400) PENDING.delete(PENDING.keys().next().value);
+  PENDING.set(d.requestId, { t0: d.timeStamp, body: bodyText(d.requestBody).slice(0, 8000) });
+}
+function trackHeaders(d) {
+  const p = PENDING.get(d.requestId);
+  if (p) p.reqHeaders = (d.requestHeaders ?? []).map(h => [h.name, h.value ?? '']);
 }
 
 // webRequest liefert nur Ereignisse, wenn die Extension mindestens eine Adresse lesen darf.
@@ -265,16 +294,23 @@ async function netLog(d, what) {
 const WEB = { urls: ['http://*/*', 'https://*/*'] };
 function wrCompleted(d) {
   if (d.statusCode >= 400) netLog(d, String(d.statusCode));
+  else PENDING.delete(d.requestId);
   recDone(d);
 }
 function wrError(d) {
   // Abgebrochene oder von anderen Extensions blockierte Requests sind keine Fehler der Seite
   if (!/ERR_ABORTED|ERR_BLOCKED_BY_CLIENT|ERR_CACHE_MISS|ERR_BLOCKED_BY_RESPONSE/.test(d.error)) netLog(d, d.error.replace('net::', ''));
+  else PENDING.delete(d.requestId);
   recDone(d);
+}
+function wrHeaders(d) {
+  trackHeaders(d);
+  recHeaders(d);
 }
 function wrBefore(d) {
   // Neue Seite im Tab: alte Meldungen weg
   if (d.type === 'main_frame' && d.tabId >= 0) clearLogs(d.tabId);
+  trackStart(d);
   recStart(d);
 }
 let wrOn = false;
@@ -282,7 +318,7 @@ function wrOff() {
   chrome.webRequest.onCompleted.removeListener(wrCompleted);
   chrome.webRequest.onErrorOccurred.removeListener(wrError);
   chrome.webRequest.onBeforeRequest.removeListener(wrBefore);
-  chrome.webRequest.onSendHeaders.removeListener(recHeaders);
+  chrome.webRequest.onSendHeaders.removeListener(wrHeaders);
   wrOn = false;
 }
 async function syncWebRequest() {
@@ -294,7 +330,7 @@ async function syncWebRequest() {
     chrome.webRequest.onCompleted.addListener(wrCompleted, WEB, ['responseHeaders']);
     chrome.webRequest.onErrorOccurred.addListener(wrError, WEB);
     chrome.webRequest.onBeforeRequest.addListener(wrBefore, WEB, ['requestBody']);
-    chrome.webRequest.onSendHeaders.addListener(recHeaders, WEB, ['requestHeaders', 'extraHeaders']);
+    chrome.webRequest.onSendHeaders.addListener(wrHeaders, WEB, ['requestHeaders', 'extraHeaders']);
     wrOn = true;
   } catch (err) {
     console.warn('webRequest', err);

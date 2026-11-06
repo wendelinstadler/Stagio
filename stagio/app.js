@@ -1514,3 +1514,5 @@ function showCompare(box, ea, eb, ra, rb, ignore) {
   }
   put(box, h('div', { className: 'cmp-heads' }, sideHead(ea, ra), sideHead(eb, rb)), body);
 }
+
+$('themeBtn').addEventListener('click', () => THEME.toggle());

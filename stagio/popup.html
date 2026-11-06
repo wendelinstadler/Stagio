@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8">
 <title>Stagio</title>
+<script src="theme.js"></script>
 <style>
   :root { --bg:#fff; --fg:#1c1c1e; --muted:#6b6b70; --line:#e2e2e6; --accent:#1a73e8; --soft:#f1f3f6; --bad:#b3261e; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; }
+    :root:not([data-theme="light"]) { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; color-scheme:dark; }
   }
+  :root[data-theme="dark"] { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; color-scheme:dark; }
+  :root[data-theme="light"] { color-scheme:light; }
   * { box-sizing:border-box; }
   body { margin:0; width:380px; padding:12px; display:grid; grid-template-columns:minmax(0,1fr); gap:12px; background:var(--bg); color:var(--fg); font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
   h1 { margin:0; font-size:13px; font-weight:600; color:var(--muted); }
@@ -77,7 +80,7 @@
   .bar { position:sticky; top:-12px; z-index:2; display:flex; align-items:center; gap:10px; margin:-12px -12px 0; padding:8px 12px; border-bottom:1px solid var(--line); background:var(--bg); }
   .brand { display:flex; align-items:center; gap:6px; font-weight:700; white-space:nowrap; }
   .brand img { width:20px; height:20px; }
-  .tabs { display:flex; gap:1px; padding:2px; border-radius:8px; background:var(--soft); margin-right:auto; }
+  .tabs { display:flex; gap:1px; padding:2px; border-radius:8px; background:var(--soft); min-width:0; }
   .tab { display:flex; align-items:center; gap:4px; padding:4px 8px; border:0; border-radius:6px; background:none; color:var(--muted); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
   .tab:hover { color:var(--fg); }
   .tab[aria-selected="true"] { background:var(--bg); color:var(--fg); box-shadow:0 1px 2px rgba(0,0,0,.12); }
@@ -173,18 +176,42 @@
   .ritem code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:ui-monospace,Consolas,monospace; font-size:11px; }
   .ritem .qm { min-width:44px; font-size:10px; }
   .teambar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:6px; background:color-mix(in srgb, var(--accent) 12%, var(--bg)); font-size:12px; }
+  .tools-r { display:flex; gap:4px; margin-left:auto; flex:none; }
+  button.icon { display:grid; place-items:center; padding:0; }
+  /* Zeigt das Symbol des Themas, zu dem ein Klick wechselt */
+  .i-sun { display:none; } .i-moon { display:grid; }
+  :root[data-theme="dark"] .i-sun { display:grid; } :root[data-theme="dark"] .i-moon { display:none; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .i-sun { display:grid; } :root:not([data-theme="light"]) .i-moon { display:none; } }
+  /* Log-Details */
+  .log { display:block; padding:0; }
+  .lhead2 { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:8px; width:100%; padding:6px 8px; border:0; background:none; color:var(--fg); font:inherit; font-size:12px; text-align:left; cursor:pointer; }
+  .lhead2:hover { background:var(--soft); }
+  .lchev { display:inline-block; margin-left:6px; transition:transform .15s; color:var(--muted); }
+  .log.open .lchev { transform:rotate(90deg); }
+  .log.open .lm small { white-space:normal; overflow-wrap:anywhere; }
+  .ldet { display:grid; gap:8px; padding:4px 10px 10px; border-top:1px dashed var(--line); background:var(--soft); font-size:12px; }
+  .lsec { display:grid; gap:4px; }
+  .lsec > b { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .lkv { width:100%; border-collapse:collapse; font:11px ui-monospace,Consolas,monospace; table-layout:fixed; }
+  .lkv td { padding:2px 4px; vertical-align:top; overflow-wrap:anywhere; border-bottom:1px solid var(--line); }
+  .lkv td:first-child { width:34%; color:var(--muted); }
+  .lpre { margin:0; max-height:220px; overflow:auto; padding:6px 8px; border-radius:6px; background:#1e1f22; color:#e8e8ea; font:11px/1.45 ui-monospace,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
 </style>
 </head>
 <body>
 <header class="bar">
-  <span class="brand" title="Stagio"><img src="icons/48.png" alt="Stagio"></span>
   <nav id="tabs" class="tabs" role="tablist"></nav>
-  <button class="icon" id="api" title="API-Tester im grossen Fenster öffnen">↗</button>
+  <span class="tools-r">
+    <button class="icon" id="themeBtn" title="Hell/Dunkel wechseln"><span class="i-sun"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span><span class="i-moon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span></button>
+    <button class="icon" id="settingsBtn" title="Einstellungen"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    <button class="icon" id="api" title="API-Tester im grossen Fenster öffnen">↗</button>
+  </span>
 </header>
 
 <div class="view" data-view="switch">
 <section id="now"></section>
 <section id="list"></section>
+<button type="button" class="btn wide" id="showForm" hidden>+ Projekt hinzufügen</button>
 <form id="form">
   <h1 id="formTitle">Projekt hinzufügen</h1>
   <input id="name" placeholder="Projektname" required>

@@ -208,8 +208,11 @@ async function renderGeneral() {
     await I18N.load();
     location.reload();
   });
+  const theme = h('select', { style: 'width:auto' }, [['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']].map(([v, l]) => h('option', { value: v, selected: (p.theme ?? 'auto') === v }, l)));
+  theme.addEventListener('change', () => THEME.set(theme.value).then(() => toast('Gespeichert')));
   $('general').replaceChildren(
     h('label', { className: 'check', style: 'align-items:center' }, h('span', {}, 'Sprache'), lang),
+    h('label', { className: 'check', style: 'align-items:center' }, h('span', {}, 'Darstellung'), theme),
     box(p.health, v => PREFS.set({ health: v }).then(() => toast('Gespeichert')), 'Server-Status anzeigen', 'Grüner/roter Punkt pro Umgebung: läuft der Server?'),
     box(p.errors, v => PREFS.set({ errors: v }).then(() => toast('Gespeichert')), 'Fehler auf der Seite sammeln', 'JS-Fehler, console.error und fehlgeschlagene Requests deiner Projektseiten im Tab „Logs“'),
     box(marker !== false, v => chrome.storage.local.set({ marker: v }).then(() => toast('Gespeichert')), 'Umgebung auf der Seite markieren', 'Farbbalken oben und Name im Tab-Titel')

@@ -6,11 +6,10 @@
   --mono: ui-monospace, "SF Mono", Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80;
-    --j-key:#d7aefb; --j-str:#81c995; --j-num:#8ab4f8; --j-bool:#fdd663;
-  }
+  :root:not([data-theme="light"]) { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; --j-key:#d7aefb; --j-str:#81c995; --j-num:#8ab4f8; --j-bool:#fdd663; color-scheme:dark; }
 }
+:root[data-theme="dark"] { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; --j-key:#d7aefb; --j-str:#81c995; --j-num:#8ab4f8; --j-bool:#fdd663; color-scheme:dark; }
+:root[data-theme="light"] { color-scheme:light; }
 * { box-sizing:border-box; }
 html { color-scheme: light dark; }
 body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
@@ -209,3 +208,8 @@ dialog::backdrop { background:rgba(0,0,0,.35); }
 .d-changed td:nth-child(3), .d-added td:nth-child(3) { background:color-mix(in srgb, #1e8e3e 12%, transparent); }
 .cmp-lines .l-removed { color:#f28b82; }
 .cmp-lines .l-added { color:#81c995; }
+
+/* Hell/Dunkel-Knopf: zeigt das Thema, zu dem ein Klick wechselt */
+.i-sun { display:none; } .i-moon { display:inline; }
+:root[data-theme="dark"] .i-sun { display:inline; } :root[data-theme="dark"] .i-moon { display:none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .i-sun { display:inline; } :root:not([data-theme="light"]) .i-moon { display:none; } }

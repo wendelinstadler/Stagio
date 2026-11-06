@@ -4,12 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Stagio Einstellungen</title>
+<script src="theme.js"></script>
 <link rel="icon" href="icons/48.png">
 <style>
   :root { --bg:#fff; --fg:#1c1c1e; --muted:#6b6b70; --line:#e2e2e6; --accent:#1a73e8; --soft:#f1f3f6; --bad:#b3261e; --ok:#188038; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; --ok:#81c995; }
+    :root:not([data-theme="light"]) { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; --ok:#81c995; color-scheme:dark; }
   }
+  :root[data-theme="dark"] { --bg:#1f2023; --fg:#f2f2f3; --muted:#a5a5ab; --line:#3a3b40; --accent:#8ab4f8; --soft:#2a2b2f; --bad:#ff8a80; --ok:#81c995; color-scheme:dark; }
+  :root[data-theme="light"] { color-scheme:light; }
   * { box-sizing:border-box; }
   [hidden] { display:none !important; }
   html { color-scheme: light dark; }

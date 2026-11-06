@@ -595,7 +595,7 @@ globalThis.VCS = {
 
 // ---------- Allgemeine Einstellungen ----------
 globalThis.PREFS = {
-  DEFAULTS: { health: true, errors: true, lang: 'auto' },
+  DEFAULTS: { health: true, errors: true, lang: 'auto', theme: 'auto' },
   async get() {
     const { prefs } = await chrome.storage.local.get('prefs');
     return { ...this.DEFAULTS, ...prefs };
