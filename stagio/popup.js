@@ -400,7 +400,11 @@ const qRes = new Map(); // letzte Antwort pro Request
 async function renderQuick(projects, m) {
   const d = await chrome.storage.local.get(['apiCols', 'apiState', 'apiCookies']);
   const cols = d.apiCols ?? [];
-  const pinned = p => cols.filter(c => c.projectId === p.id).flatMap(c => c.reqs.filter(r => r.pin));
+  const pinned = p =>
+    cols
+      .filter(c => c.projectId === p.id)
+      .flatMap(c => c.reqs.filter(r => r.pin))
+      .sort((a, b) => (a.pinAt ?? 0) - (b.pinAt ?? 0));
   // Auf einer Projektseite nur dieses Projekt, sonst alle Projekte mit markierten Requests
   const list = (m ? [m.project] : projects).filter(p => pinned(p).length);
   tabCount.api = list.reduce((n, p) => n + pinned(p).length, 0);
@@ -1327,18 +1331,57 @@ async function renderRec() {
   }
   // Gestoppt: Auswahl übernehmen
   const sel = h('select', {}, projects.map(p => h('option', { value: p.id, selected: p === target }, p.name)));
+  // Ordner wählen: neuer Ordner für die Aufnahme oder ein bestehender des Projekts
+  const { apiCols: recCols = [] } = await chrome.storage.local.get('apiCols');
+  const folder = h('select', { title: 'Ordner im API-Tester' });
+  const fillFolders = () =>
+    put(
+      folder,
+      h('option', { value: '' }, 'Neuer Ordner „Aufnahme …“'),
+      recCols.filter(c => c.projectId === (projects.length > 1 ? sel.value : projects[0]?.id)).map(c => h('option', { value: c.id }, c.name))
+    );
+  sel.addEventListener('change', fillFolders);
+  fillFolders();
+  const pins = new Set();
+  const stars = [];
+  const paintStar = (b, on) => {
+    b.textContent = on ? '★' : '☆';
+    b.classList.toggle('on', on);
+    b.title = on ? 'Wird Schnell-Request im Popup' : 'Als Schnell-Request ins Popup';
+  };
+  const allStar = h('button', { type: 'button', className: 'rstar' });
+  const paintAll = () => paintStar(allStar, uniq.length > 0 && pins.size === uniq.length);
+  allStar.addEventListener('click', () => {
+    const on = pins.size !== uniq.length;
+    pins.clear();
+    if (on) uniq.forEach(u => pins.add(u.key));
+    stars.forEach(([b, k]) => paintStar(b, pins.has(k)));
+    paintAll();
+  });
   const checks = uniq.map(u => {
     const cb = h('input', { type: 'checkbox', checked: true, style: 'width:auto' });
     cb.dataset.key = u.key;
+    const star = h('button', { type: 'button', className: 'rstar' });
+    paintStar(star, false);
+    stars.push([star, u.key]);
+    star.addEventListener('click', ev => {
+      ev.preventDefault();
+      pins.has(u.key) ? pins.delete(u.key) : pins.add(u.key);
+      if (pins.has(u.key)) cb.checked = true;
+      paintStar(star, pins.has(u.key));
+      paintAll();
+    });
     return h(
       'label',
       { className: 'ritem' },
       cb,
       h('span', { className: `qm ${u.method}` }, u.method),
       h('code', { title: u.path }, u.path),
-      h('span', { className: 'muted' }, [u.status && String(u.status), u.n > 1 && `${u.n}×`].filter(Boolean).join(' · '))
+      h('span', { className: 'muted' }, [u.status && String(u.status), u.n > 1 && `${u.n}×`].filter(Boolean).join(' · ')),
+      star
     );
   });
+  paintAll();
   const msg = h('div', { className: 'muted' });
   put(
     box,
@@ -1346,8 +1389,10 @@ async function renderRec() {
       'div',
       { className: 'recdone' },
       h('b', {}, `${uniq.length} ${uniq.length === 1 ? 'Request' : 'Requests'} aufgenommen`),
+      uniq.length > 0 && h('div', { className: 'rhead' }, h('span', { className: 'muted' }, '☆ = auch als Schnell-Request ins Popup'), h('label', { className: 'rall' }, 'Alle', allStar)),
       uniq.length ? h('div', { className: 'rlist' }, checks) : h('div', { className: 'muted' }, 'Keine API-Aufrufe erkannt.'),
-      projects.length > 1 && sel,
+      projects.length > 1 && h('label', { className: 'f' }, 'Projekt', sel),
+      uniq.length > 0 && projects.length > 0 && h('label', { className: 'f' }, 'Ordner', folder),
       !projects.length && h('div', { className: 'bad' }, 'Lege zuerst im Switcher ein Projekt an.'),
       h(
         'div',
@@ -1361,9 +1406,10 @@ async function renderRec() {
               className: 'btn',
               onclick: async () => {
                 const keys = checks.map(l => l.querySelector('input')).filter(cb => cb.checked).map(cb => cb.dataset.key);
-                const res = await chrome.runtime.sendMessage({ type: 'rec-save', tabId: tab.id, projectId: projects.length > 1 ? sel.value : projects[0].id, keys });
+                const res = await chrome.runtime.sendMessage({ type: 'rec-save', tabId: tab.id, projectId: projects.length > 1 ? sel.value : projects[0].id, keys, pins: [...pins].filter(k => keys.includes(k)), colId: folder.value || null });
                 if (!res?.ok) return (msg.textContent = res?.error ?? 'Fehler');
-                put(box, h('div', { className: 'muted' }, `${res.count} Requests als „${res.name}“ im API-Tester gespeichert.`, ' ', h('button', { className: 'link open', style: 'padding:0', onclick: () => openApi(projects.length > 1 ? sel.value : projects[0].id) }, 'Öffnen ↗')));
+                renderQuick(await LS.projects(), LS.match(await LS.projects(), tab.url));
+                put(box, h('div', { className: 'muted' }, `${res.count} Requests in „${res.name}“ gespeichert${res.pinned ? `, ${res.pinned} davon als Schnell-Request` : ''}.`, ' ', h('button', { className: 'link open', style: 'padding:0', onclick: () => openApi(projects.length > 1 ? sel.value : projects[0].id) }, 'Öffnen ↗')));
               },
             },
             'In den API-Tester übernehmen'

@@ -213,3 +213,23 @@ dialog::backdrop { background:rgba(0,0,0,.35); }
 .i-sun { display:none; } .i-moon { display:inline; }
 :root[data-theme="dark"] .i-sun { display:inline; } :root[data-theme="dark"] .i-moon { display:none; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .i-sun { display:inline; } :root:not([data-theme="light"]) .i-moon { display:none; } }
+
+/* Schnell-Requests (Popup) und Ziehen */
+.quick { padding:10px; border:1px solid var(--line); border-radius:8px; }
+.quick .small { font-size:11px; }
+.qlist { display:grid; gap:4px; }
+.qitem { --m:var(--get); display:flex; align-items:center; gap:6px; padding:3px 4px; border:1px solid color-mix(in srgb, var(--m) 50%, var(--line)); border-radius:6px; background:color-mix(in srgb, var(--m) 8%, var(--bg)); cursor:grab; font-size:12px; }
+.qitem:hover { border-color:var(--m); }
+.qitem .badge { min-width:52px; padding:2px 0; font-size:10px; }
+.qitem .qpath { flex:1; min-width:0; font-family:var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qitem .grip { color:var(--muted); font-size:10px; letter-spacing:-2px; }
+.qx { border:0; background:none; color:var(--muted); font-size:15px; line-height:1; padding:0 4px; cursor:pointer; }
+.qx:hover { color:var(--delete); }
+.qdrop { padding:8px; border:1px dashed var(--line); border-radius:6px; color:var(--muted); font-size:11px; text-align:center; }
+.op-head[draggable="true"] { cursor:grab; }
+body.drag-main .quick .qdrop { border-color:var(--accent); color:var(--accent); }
+body.drag-main .tag { outline:1px dashed transparent; }
+.drop-over.quick { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 7%, var(--bg)); }
+.drop-over.tag { outline:2px dashed var(--accent); outline-offset:4px; border-radius:6px; }
+body.drag-quick #main { outline:2px dashed color-mix(in srgb, var(--delete) 40%, transparent); outline-offset:-6px; border-radius:8px; }
+body.drag-quick #main.drop-over { background:color-mix(in srgb, var(--delete) 5%, var(--bg)); }

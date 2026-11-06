@@ -320,6 +320,7 @@ $('cookies').addEventListener('change', () => {
 /* ---------- Hauptbereich: Sammlungen im Swagger-Stil ---------- */
 
 function renderMain() {
+  renderQuickSide();
   const q = filter.trim().toLowerCase();
   if (!project()) {
     put($('main'), h('div', { className: 'hero' }, h('h2', {}, 'Zuerst ein Projekt'), h('div', { className: 'muted' }, 'Lege links ein Projekt mit deinen Umgebungen an (oder im Stagio-Popup). Danach reicht im Request ein Pfad wie /api/users, und oben wechselst du zwischen Lokal, Test und Prod.')));
@@ -343,7 +344,7 @@ function colSection(c, q) {
   const reqs = q ? c.reqs.filter(r => `${r.method} ${r.path} ${r.summary}`.toLowerCase().includes(q)) : c.reqs;
   if (q && !reqs.length) return null;
   const folded = c.folded && !q;
-  return h(
+  const sec = h(
     'section',
     { className: 'tag' },
     h(
@@ -379,7 +380,122 @@ function colSection(c, q) {
         'Löschen'
       )
     ),
-    !folded && h('div', { className: 'ops' }, reqs.map(r => opBlock(c, r)), !reqs.length && h('div', { className: 'muted empty' }, 'Noch keine Requests in dieser Sammlung.'))
+    !folded && h('div', { className: 'ops' }, reqs.map(r => opBlock(c, r)), !reqs.length && h('div', { className: 'muted empty' }, 'Noch keine Requests in diesem Ordner. Requests hierher ziehen.'))
+  );
+  dropZone(sec, () => true, ev => {
+    const d = DRAG;
+    if (!d) return;
+    if (d.from === 'quick') return setPin(d.r, false);
+    if (d.c === c) {
+      // Reihenfolge im Ordner: vor den Request unter der Maus
+      const over = ev.target.closest?.('.op');
+      const target = over && c.reqs.find(x => x.id === over.dataset.id);
+      if (!target || target === d.r) return;
+      c.reqs.splice(c.reqs.indexOf(d.r), 1);
+      c.reqs.splice(c.reqs.indexOf(target), 0, d.r);
+    } else {
+      d.c.reqs.splice(d.c.reqs.indexOf(d.r), 1);
+      c.reqs.push(d.r);
+      c.folded = false;
+      toast(T(`Nach „${c.name}“ verschoben.`));
+    }
+    save();
+    renderMain();
+  });
+  return sec;
+}
+
+/* ---------- Ziehen und Ablegen: Ordner und Schnell-Requests ---------- */
+
+let DRAG = null; // { r, c, from: 'main' | 'quick' }
+function dragSource(el, get) {
+  el.draggable = true;
+  el.addEventListener('dragstart', ev => {
+    DRAG = get();
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData('text/plain', `${DRAG.r.method} ${DRAG.r.path}`);
+    requestAnimationFrame(() => document.body.classList.add('dragging', `drag-${DRAG?.from}`));
+  });
+  el.addEventListener('dragend', ev => {
+    const d = DRAG;
+    DRAG = null;
+    document.body.classList.remove('dragging', 'drag-main', 'drag-quick');
+    document.querySelectorAll('.drop-over').forEach(x => x.classList.remove('drop-over'));
+    // Aus den Schnell-Requests irgendwo hingezogen (ausserhalb der Liste): entfernen
+    if (d?.from === 'quick' && ev.dataTransfer.dropEffect === 'none') setPin(d.r, false);
+  });
+}
+function dropZone(el, accept, onDrop) {
+  el.addEventListener('dragover', ev => {
+    if (!DRAG || !accept(DRAG)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    ev.dataTransfer.dropEffect = 'move';
+    el.classList.add('drop-over');
+  });
+  el.addEventListener('dragleave', ev => {
+    if (!el.contains(ev.relatedTarget)) el.classList.remove('drop-over');
+  });
+  el.addEventListener('drop', ev => {
+    if (!DRAG || !accept(DRAG)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    el.classList.remove('drop-over');
+    onDrop(ev);
+  });
+}
+
+const pinnedReqs = () =>
+  projCols()
+    .flatMap(c => c.reqs.filter(r => r.pin).map(r => ({ r, c })))
+    .sort((a, b) => (a.r.pinAt ?? 0) - (b.r.pinAt ?? 0));
+
+function setPin(r, on, before = null) {
+  const list = pinnedReqs().map(x => x.r).filter(x => x !== r);
+  if (on) list.splice(before ? Math.max(0, list.indexOf(before)) : list.length, 0, r);
+  r.pin = on;
+  if (!on) delete r.pinAt;
+  list.forEach((x, i) => (x.pinAt = i + 1));
+  save();
+  renderMain();
+  if (!on) toast(T('Aus dem Popup entfernt.'));
+}
+
+function renderQuickSide() {
+  const box = $('quickBox');
+  if (!project()) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  const list = pinnedReqs();
+  put(
+    box,
+    h('div', { className: 'side-head' }, h('h2', {}, 'Schnell-Requests'), h('span', { className: 'grow' }), h('span', { className: 'muted small' }, 'im Popup')),
+    h(
+      'div',
+      { className: 'qlist' },
+      list.map(({ r, c }) => {
+        const item = h(
+          'div',
+          { className: `qitem m-${r.method.toLowerCase()}`, title: `${r.method} ${r.path}${r.summary ? ` · ${r.summary}` : ''}\n${c.name}`, 'data-qid': r.id },
+          h('span', { className: 'grip' }, '⋮⋮'),
+          h('span', { className: 'badge' }, r.method),
+          h('span', { className: 'qpath' }, r.path || '/'),
+          h('button', { className: 'qx', title: 'Aus dem Popup entfernen', onclick: ev => (ev.stopPropagation(), setPin(r, false)) }, '×')
+        );
+        item.addEventListener('click', () => {
+          opened.add(r.id);
+          c.folded = false;
+          filter = $('search').value = '';
+          renderMain();
+          document.querySelector(`.op[data-id="${r.id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        });
+        dragSource(item, () => ({ r, c, from: 'quick' }));
+        return item;
+      }),
+      h('div', { className: 'qdrop' }, list.length ? 'Hierher ziehen zum Hinzufügen, rausziehen zum Entfernen' : 'Requests von rechts hierher ziehen. Sie erscheinen dann im Popup zum schnellen Senden.')
+    )
   );
 }
 
@@ -405,7 +521,7 @@ function addReq(c) {
 }
 
 function renameCol(c) {
-  const name = prompt(T('Neuer Name der Sammlung'), c.name)?.trim();
+  const name = prompt(T('Neuer Name des Ordners'), c.name)?.trim();
   if (!name) return;
   c.name = name;
   save();
@@ -428,10 +544,9 @@ function opBlock(c, r) {
   paintStar();
   star.addEventListener('click', ev => {
     ev.stopPropagation();
-    r.pin = !r.pin;
-    paintStar();
-    save();
-    toast(r.pin ? 'Im Popup verfügbar.' : 'Aus dem Popup entfernt.');
+    const on = !r.pin;
+    setPin(r, on);
+    if (on) toast(T('Im Popup verfügbar.'));
   });
   const block = h(
     'div',
@@ -459,6 +574,7 @@ function opBlock(c, r) {
     path.textContent = r.path;
     sum.textContent = r.summary;
   };
+  dragSource(block.firstChild, () => ({ r, c, from: 'main' }));
   if (isOpen) block.append(opBody(c, r, block));
   return block;
 }
@@ -565,7 +681,7 @@ function opBody(c, r, block) {
   };
   showTab(current);
 
-  const moveSel = h('select', { title: 'In andere Sammlung verschieben' }, h('option', { value: '' }, 'Verschieben nach …'), projCols().filter(x => x !== c).map(x => h('option', { value: x.id }, x.name)));
+  const moveSel = h('select', { title: 'In anderen Ordner verschieben' }, h('option', { value: '' }, 'Verschieben nach …'), projCols().filter(x => x !== c).map(x => h('option', { value: x.id }, x.name)));
   moveSel.addEventListener('change', () => {
     const to = projCols().find(x => x.id === moveSel.value);
     if (!to) return;
@@ -1225,7 +1341,7 @@ function importSpec(spec, src) {
   const total = fresh.reduce((n, c) => n + c.reqs.length, 0);
   save();
   renderAll();
-  toast(`${title}: ${total} Endpoints in ${fresh.length} ${fresh.length === 1 ? 'Sammlung' : 'Sammlungen'} ${before.length ? 'aktualisiert' : 'importiert'}${note}.`);
+  toast(`${title}: ${total} Endpoints in ${fresh.length} ${fresh.length === 1 ? 'Ordner' : 'Ordnern'} ${before.length ? 'aktualisiert' : 'importiert'}${note}.`);
 }
 
 /* ---------- Backup (Projekte und Requests) ---------- */
@@ -1279,7 +1395,7 @@ $('importFile').addEventListener('change', async () => {
     await saveProjects(true);
     save();
     renderAll();
-    toast(`${projects.length} Projekte und ${cols.length} Sammlungen hinzugefügt.`);
+    toast(`${projects.length} Projekte und ${cols.length} Ordner hinzugefügt.`);
   } catch (err) {
     toast(err.message, true);
   }
@@ -1290,7 +1406,7 @@ $('importFile').addEventListener('change', async () => {
 $('newReq').addEventListener('click', () => addReq());
 $('newCol').addEventListener('click', () => {
   if (!project()) return toast('Lege zuerst links ein Projekt an.', true);
-  const name = prompt(T('Name der Sammlung'), T('Neue Sammlung'))?.trim();
+  const name = prompt(T('Name des Ordners'), T('Neuer Ordner'))?.trim();
   if (!name) return;
   addCol(name);
   save();
@@ -1516,3 +1632,14 @@ function showCompare(box, ea, eb, ra, rb, ignore) {
 }
 
 $('themeBtn').addEventListener('click', () => THEME.toggle());
+
+// Schnell-Request irgendwo in die Liste rechts ziehen: aus dem Popup nehmen
+dropZone($('main'), d => d.from === 'quick', () => setPin(DRAG.r, false));
+dropZone($('quickBox'), () => true, ev => {
+  const over = ev.target.closest?.('.qitem');
+  const before = over ? pinnedReqs().find(x => x.r.id === over.dataset.qid)?.r : null;
+  if (DRAG.from === 'quick' && before === DRAG.r) return;
+  const wasPinned = DRAG.r.pin;
+  setPin(DRAG.r, true, before);
+  if (!wasPinned) toast(T('Im Popup verfügbar.'));
+});

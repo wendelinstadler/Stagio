@@ -402,7 +402,7 @@ function recDone(d) {
 }
 
 // Aufgenommene Requests ins Projekt übernehmen
-async function recSave(tabId, projectId, keys) {
+async function recSave(tabId, projectId, keys, pins = [], colId = null) {
   await loadRec();
   const r = REC.get(tabId);
   const projects = await LS.projects();
@@ -422,17 +422,30 @@ async function recSave(tabId, projectId, keys) {
     } catch {}
     const preset = new Set(HDR.of(env).map(x => x.k.toLowerCase()));
     const headers = it.headers.filter(x => !preset.has(x.k.toLowerCase())).map(x => ({ ...x, on: true }));
-    reqs.push(AP.newReq({ method: it.method, path, params, headers, body: AP.bodyFrom(it.body, it.ct ?? '') }));
+    const req = AP.newReq({ method: it.method, path, params, headers, body: AP.bodyFrom(it.body, it.ct ?? '') });
+    if (pins?.includes(key)) req.pin = true;
+    reqs.push(req);
   }
   const { apiCols = [] } = await chrome.storage.local.get('apiCols');
-  const d = new Date(r.startedAt);
-  const name = T(`Aufnahme ${d.toLocaleDateString(I18N.locale)} ${d.toLocaleTimeString(I18N.locale, { hour: '2-digit', minute: '2-digit' })}`);
-  apiCols.push({ id: AP.id(), name, projectId: p.id, reqs, folded: false });
+  // Schnell-Requests ans Ende der bisherigen Reihenfolge stellen
+  let order = Math.max(0, ...apiCols.filter(c => c.projectId === p.id).flatMap(c => c.reqs.filter(x => x.pin).map(x => x.pinAt ?? 0)));
+  for (const req of reqs) if (req.pin) req.pinAt = ++order;
+  const target = colId && apiCols.find(c => c.id === colId && c.projectId === p.id);
+  let name;
+  if (target) {
+    target.reqs.push(...reqs);
+    target.folded = false;
+    name = target.name;
+  } else {
+    const d = new Date(r.startedAt);
+    name = T(`Aufnahme ${d.toLocaleDateString(I18N.locale)} ${d.toLocaleTimeString(I18N.locale, { hour: '2-digit', minute: '2-digit' })}`);
+    apiCols.push({ id: AP.id(), name, projectId: p.id, reqs, folded: false });
+  }
   await chrome.storage.local.set({ apiCols });
   REC.delete(tabId);
   persistRec();
   repaint(tabId);
-  return { count: reqs.length, name };
+  return { count: reqs.length, name, pinned: reqs.filter(x => x.pin).length };
 }
 
 // ---------- 6. Daten einer Umgebung löschen (nur genau diese Adresse) ----------
@@ -517,7 +530,7 @@ chrome.runtime.onMessage.addListener((m, sender, reply) => {
       });
       return true;
     case 'rec-save':
-      run(() => recSave(m.tabId, m.projectId, m.keys));
+      run(() => recSave(m.tabId, m.projectId, m.keys, m.pins, m.colId));
       return true;
     case 'clear-data':
       run(async () => ({ done: await clearData(m.origin, m.opts, m.tabId) }));
