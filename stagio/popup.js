@@ -236,20 +236,26 @@ function projectCard(p, notAllowed) {
       )
     ),
     pages.length
-      ? p.envs.map(e => {
-          const live = LS.isProd(e.name);
-          return h(
-            'div',
-            { className: 'pages' },
-            h('span', { className: 'who' }, dot(e.name), e.name, hdot(e, p)),
-            pages.map(pg => {
-              const url = LS.pageUrl(e, pg);
-              return url && h('button', { className: 'chip', title: url, onclick: guard(live, 'Sicher?', () => openGroups([{ urls: [url] }])) }, pg.name);
-            }),
-            urlsOf(e).length > 1 &&
-              h('button', { className: 'chip all', title: `Alle ${urlsOf(e).length} Seiten in ${e.name} öffnen`, onclick: guard(live, 'Sicher?', () => openGroups([group(e)])) }, 'Alle')
-          );
-        })
+      ? h(
+          'div',
+          { className: 'pages' },
+          p.envs.flatMap(e => {
+            const live = LS.isProd(e.name);
+            return [
+              h('span', { className: 'who' }, dot(e.name), h('span', { className: 'wn' }, e.name), hdot(e, p)),
+              h(
+                'div',
+                { className: 'pchips' },
+                pages.map(pg => {
+                  const url = LS.pageUrl(e, pg);
+                  return url && h('button', { className: 'chip', title: url, onclick: guard(live, 'Sicher?', () => openGroups([{ urls: [url] }])) }, pg.name);
+                }),
+                urlsOf(e).length > 1 &&
+                  h('button', { className: 'chip all', title: `Alle ${urlsOf(e).length} Seiten in ${e.name} öffnen`, onclick: guard(live, 'Sicher?', () => openGroups([group(e)])) }, 'Alle')
+              ),
+            ];
+          })
+        )
       : h('div', { className: 'muted envnames' }, p.envs.map(e => h('span', {}, e.name, hdot(e, p)))),
     notAllowed.length > 0 &&
       h(
@@ -690,13 +696,19 @@ async function act(p, r, st, draw, op, extra = {}) {
   try {
     const res = await VCS.call({ op, path: r.path, ...extra }, V);
     st.vcs = res.vcs;
-    if (op === 'info') st.info = res;
+    if (op === 'info') {
+      st.info = res;
+      st.diff = null;
+    }
     if (res.info) st.info = res.info;
     if (op === 'branches') st.branches = res.branches;
     if (op === 'log') st.log = res.commits;
     if (DONE[op]) {
       st.branches = null;
       st.log = null;
+      st.diff = null;
+      st.shows = {};
+      st.blogs = {};
       st.openList = false;
       st.openNew = false;
       const out = (res.out ?? '').trim().split('\n').slice(-3).join('\n');
@@ -713,6 +725,93 @@ async function act(p, r, st, draw, op, extra = {}) {
   st.busy = null;
   draw();
   if (st.openLog && !st.log && op !== 'log' && !st.err && V.features.log) act(p, r, st, draw, 'log', { count: V.logCount });
+  if (st.openChanges && !st.diff && !st.err) loadInto(r, st, draw, 'diff', { op: 'diff' });
+}
+
+// Lädt Diffs/Commits unabhängig von den anderen Aktionen (Knöpfe bleiben bedienbar)
+async function loadInto(r, st, draw, key, msg, sub) {
+  const set = v => (sub ? ((st[key] ??= {})[sub] = v) : (st[key] = v));
+  set({ loading: true });
+  draw();
+  try {
+    const res = await VCS.call({ ...msg, path: r.path }, V);
+    set(res.patch != null ? { ...res, files: VCS.parsePatch(res.patch) } : res);
+  } catch (err) {
+    set({ error: err.message });
+  }
+  draw();
+}
+
+const FS = { A: 'neu', D: 'gelöscht', R: 'umbenannt', M: 'geändert' };
+
+// Dateiliste mit aufklappbarem Diff pro Datei
+function fileList(st, draw, data, scope) {
+  if (!data || data.loading) return h('div', { className: 'busy' }, 'Lade Änderungen …');
+  if (data.error) return h('div', { className: 'rerr' }, data.error);
+  if (!data.files.length) return h('div', { className: 'busy' }, 'Keine Änderungen.');
+  st.openFiles ??= new Set();
+  return h(
+    'div',
+    { className: 'files' },
+    data.files.flatMap(f => {
+      const key = `${scope}|${f.file}`;
+      const open = st.openFiles.has(key);
+      const name = f.file.split('/').pop();
+      const dir = f.file.slice(0, f.file.length - name.length);
+      const row = h(
+        'button',
+        { className: 'frow' + (open ? ' open' : ''), title: f.file, 'data-notr': '' },
+        h('span', { className: `fs fs-${f.s}`, title: T(FS[f.s]) }, f.s),
+        h('span', { className: 'fn' }, h('span', { className: 'fd' }, dir), name),
+        f.binary ? h('span', { className: 'fc' }, 'bin') : h('span', { className: 'fc' }, f.add ? h('b', { className: 'pa' }, `+${f.add}`) : null, f.del ? h('b', { className: 'pd' }, `−${f.del}`) : null)
+      );
+      row.addEventListener('click', () => {
+        open ? st.openFiles.delete(key) : st.openFiles.add(key);
+        draw();
+      });
+      if (!open) return row;
+      const MAX = 600;
+      const body = f.binary
+        ? h('div', { className: 'busy' }, 'Binärdatei')
+        : h(
+            'pre',
+            { className: 'diff' },
+            f.lines.slice(0, MAX).map(l => h('div', { className: l.startsWith('@@') ? 'dh' : l[0] === '+' ? 'da' : l[0] === '-' ? 'dd' : '' }, l || ' ')),
+            f.lines.length > MAX && h('div', { className: 'dh' }, `… ${f.lines.length - MAX} weitere Zeilen`)
+          );
+      return [row, body];
+    }),
+    data.truncated && h('div', { className: 'busy' }, 'Sehr grosser Diff, nur der Anfang wird gezeigt.')
+  );
+}
+
+// Commit-Zeile, aufklappbar mit Nachricht und Dateien
+function commitRow(r, st, draw, c) {
+  st.shows ??= {};
+  st.openCommits ??= new Set();
+  const open = st.openCommits.has(c.id);
+  const row = h(
+    'button',
+    { className: 'commit' + (open ? ' open' : ''), title: `${c.id} · ${c.author}` },
+    h('code', {}, c.id.slice(0, 7)),
+    h('span', { 'data-notr': '' }, c.msg),
+    h('small', {}, `${c.author} · ${VCS.ago(c.date)}`)
+  );
+  row.addEventListener('click', () => {
+    open ? st.openCommits.delete(c.id) : st.openCommits.add(c.id);
+    draw();
+    if (!open && !st.shows[c.id]) loadInto(r, st, draw, 'shows', { op: 'show', rev: c.id }, c.id);
+  });
+  if (!open) return row;
+  const d = st.shows[c.id];
+  const full = d?.commit?.msg ?? '';
+  return h(
+    'div',
+    { className: 'cdet' },
+    row,
+    full.includes('\n') && h('pre', { className: 'cmsg', 'data-notr': '' }, full),
+    fileList(st, draw, d, c.id)
+  );
 }
 
 function cardBody(p, r, st, draw) {
@@ -742,7 +841,9 @@ function cardBody(p, r, st, draw) {
       h(
         'div',
         { className: 'stat' },
-        changed ? h('span', { className: 'pill2 warn2', title: files }, `${changed} geändert`) : h('span', { className: 'pill2' }, 'sauber'),
+        changed
+          ? h('button', { className: 'pill2 warn2 pbtn' + (st.openChanges ? ' on' : ''), title: files, onclick: () => toggle('openChanges') }, `${changed} geändert`, h('span', { className: 'chev' }, st.openChanges ? '⌄' : '›'))
+          : h('span', { className: 'pill2' }, 'sauber'),
         i.ahead > 0 && h('span', { className: 'pill2 up', title: st.vcs === 'hg' ? 'Draft-Commits auf diesem Branch' : `Vor ${i.upstream ?? 'Upstream'}` }, `${i.ahead} nicht gepusht`),
         i.behind > 0 && h('span', { className: 'pill2 warn2' }, `${i.behind} hinter`),
         st.vcs === 'git' && !i.upstream && h('span', { className: 'pill2', title: 'Push legt den Branch auf origin an' }, 'noch nicht auf Server')
@@ -777,9 +878,14 @@ function cardBody(p, r, st, draw) {
     draw();
     if (k === 'openList' && st.openList && !st.branches) run('branches');
     if (k === 'openLog' && st.openLog && !st.log) run('log', { count: V.logCount });
+    if (k === 'openChanges' && st.openChanges && (!st.diff || st.diff.error)) loadInto(r, st, draw, 'diff', { op: 'diff' });
     if (k === 'openList' && st.openList) el?.focus?.();
   }
   let el = null;
+
+  if (F.sync && st.openChanges && changed) {
+    parts.push(h('div', { className: 'panel' }, h('div', { className: 'ptitle' }, h('span', {}, 'Lokale Änderungen'), h('button', { className: 'link', onclick: () => loadInto(r, st, draw, 'diff', { op: 'diff' }) }, 'Neu laden')), fileList(st, draw, st.diff, 'wc')));
+  }
 
   if (F.switch && st.openList) {
     const filter = h('input', { value: st.filter ?? '', placeholder: 'Branch suchen …', spellcheck: false });
@@ -790,12 +896,32 @@ function cardBody(p, r, st, draw) {
       put(
         listEl,
         !st.branches ? h('div', { className: 'busy', style: 'padding:6px 8px' }, 'Lade Branches …') : !items.length ? h('div', { className: 'busy', style: 'padding:6px 8px' }, 'Kein Treffer') : null,
-        items.map(b => {
+        items.flatMap(b => {
           const cur = b.name === i.branch || b.name === i.bookmark;
           const label = [b.remote && T('nur Server'), b.kind === 'bookmark' && 'Bookmark', VCS.ago(b.date)].filter(Boolean).join(' · ');
           const item = h('button', { className: 'bitem' + (cur ? ' cur' : ''), title: cur ? 'Aktueller Branch' : `Zu ${b.name} wechseln` }, cur ? '● ' : '', b.name, h('span', { className: 't' }, label));
           if (!cur) item.addEventListener('click', guard(changed > 0, `${changed} Änderungen offen. Trotzdem?`, () => run('switch', { branch: b.name })));
-          return item;
+          if (cur || !F.log) return item;
+          const openB = st.openBranch === b.name;
+          const more = h('button', { className: 'bmore' + (openB ? ' on' : ''), title: `Commits, die nur auf ${b.name} sind` }, 'Commits');
+          more.addEventListener('click', () => {
+            st.openBranch = openB ? null : b.name;
+            st.blogs ??= {};
+            draw();
+            if (!openB && !st.blogs[b.name]) loadInto(r, st, draw, 'blogs', { op: 'log', only: b.name, count: 30 }, b.name);
+          });
+          const rowEl = h('div', { className: 'brow' }, item, more);
+          if (!openB) return rowEl;
+          const bl = st.blogs?.[b.name];
+          return [
+            rowEl,
+            h(
+              'div',
+              { className: 'bcommits' },
+              h('div', { className: 'ptitle' }, h('span', {}, `Nur auf ${b.name}, nicht in ${i.branch}`)),
+              !bl || bl.loading ? h('div', { className: 'busy' }, 'Lade Commits …') : bl.error ? h('div', { className: 'rerr' }, bl.error) : !bl.commits.length ? h('div', { className: 'busy' }, 'Keine eigenen Commits, alles ist schon im aktuellen Branch.') : bl.commits.map(c => commitRow(r, st, draw, c))
+            ),
+          ];
         })
       );
     };
@@ -862,7 +988,7 @@ function cardBody(p, r, st, draw) {
         'div',
         { className: 'commits' },
         !st.log ? h('div', { className: 'busy' }, 'Lade Commits …') : !st.log.length ? h('div', { className: 'busy' }, 'Noch keine Commits.') : null,
-        (st.log ?? []).map(c => h('div', { className: 'commit', title: `${c.id} · ${c.author}` }, h('code', {}, c.id.slice(0, 7)), h('span', {}, c.msg), h('small', {}, `${c.author} · ${VCS.ago(c.date)}`)))
+        (st.log ?? []).map(c => commitRow(r, st, draw, c))
       )
     );
   }

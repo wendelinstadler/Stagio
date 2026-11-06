@@ -7,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const VERSION = 3;
+const VERSION = 4;
 
 /* ---------- Native Messaging: 4 Byte Länge (little endian) + JSON ---------- */
 
@@ -104,6 +104,46 @@ function checkBranch(name) {
 
 const lines = s => s.split('\n').filter(Boolean);
 
+// Commit-IDs: nur Hex (git und hg)
+function checkRev(rev) {
+  const r = String(rev || '').trim();
+  if (!/^[0-9a-f]{4,64}$/i.test(r)) throw new Error(`Ungültige Commit-ID: ${r || '(leer)'}`);
+  return r;
+}
+
+const MAX_PATCH = 400 * 1024;
+function cut(patch) {
+  return patch.length > MAX_PATCH ? { patch: patch.slice(0, MAX_PATCH), truncated: true } : { patch, truncated: false };
+}
+
+// Neue (unversionierte) Dateien als Patch darstellen, damit sie in der Liste mit Inhalt erscheinen
+function untrackedPatch(root, files) {
+  let out = '';
+  for (const f of files.slice(0, 30)) {
+    const full = path.resolve(root, f);
+    if (!full.startsWith(root + path.sep)) continue;
+    let text = '';
+    try {
+      const st = fs.statSync(full);
+      if (!st.isFile()) continue;
+      if (st.size > 200 * 1024) text = null;
+      else {
+        const b = fs.readFileSync(full);
+        text = b.includes(0) ? null : b.toString('utf8');
+      }
+    } catch {
+      continue;
+    }
+    out += `diff --git a/${f} b/${f}\nnew file\n--- /dev/null\n+++ b/${f}\n`;
+    if (text == null) out += 'Binary files differ\n';
+    else if (text) {
+      const ls = text.replace(/\r\n/g, '\n').replace(/\n$/, '').split('\n');
+      out += `@@ -0,0 +1,${ls.length} @@\n` + ls.map(l => '+' + l).join('\n') + '\n';
+    }
+  }
+  return out;
+}
+
 /* ---------- Git ---------- */
 
 const git = {
@@ -147,8 +187,29 @@ const git = {
   },
   async log(bin, root, o) {
     const n = Math.min(Math.max(Number(o.count) || 10, 1), 50);
-    const out = await exec(bin, ['log', `-n${n}`, '--format=%h%x09%an%x09%at%x09%s'], root).catch(e => (/does not have any commits/.test(e.message) ? '' : Promise.reject(e)));
+    const args = ['log', `-n${n}`, '--format=%h%x09%an%x09%at%x09%s'];
+    if (o.only) {
+      // Commits, die nur auf diesem Branch sind (nicht im aktuellen)
+      const b = checkBranch(o.only);
+      const local = await exec(bin, ['rev-parse', '--verify', '--quiet', `refs/heads/${b}`], root).then(() => true, () => false);
+      args.push(`HEAD..${local ? `refs/heads/${b}` : `refs/remotes/origin/${b}`}`, '--');
+    }
+    const out = await exec(bin, args, root).catch(e => (/does not have any commits/.test(e.message) ? '' : Promise.reject(e)));
     return { commits: lines(out).map(l => { const [id, author, date, ...msg] = l.split('\t'); return { id, author, date: Number(date), msg: msg.join('\t') }; }) };
+  },
+  async diff(bin, root) {
+    const st = await exec(bin, ['status', '--porcelain=v1', '-uall'], root);
+    const untracked = lines(st).filter(l => l.startsWith('??')).map(l => l.slice(3).replace(/^"|"$/g, ''));
+    const hasHead = await exec(bin, ['rev-parse', '--verify', '--quiet', 'HEAD'], root).then(() => true, () => false);
+    const tracked = await exec(bin, ['diff', '--no-color', '--no-ext-diff', hasHead ? 'HEAD' : '--cached'], root);
+    return cut(tracked + untrackedPatch(root, untracked));
+  },
+  async show(bin, root, o) {
+    const rev = checkRev(o.rev);
+    const out = await exec(bin, ['show', '--no-color', '--no-ext-diff', '--format=%H%n%an%n%at%n%B%x00', rev, '--'], root);
+    const i = out.indexOf('\0');
+    const [id, author, date, ...msg] = out.slice(0, i).split('\n');
+    return { commit: { id, author, date: Number(date), msg: msg.join('\n').trim() }, ...cut(out.slice(i + 1).replace(/^\n/, '')) };
   },
   async switch(bin, root, o) {
     const b = checkBranch(o.branch);
@@ -204,8 +265,22 @@ const hg = {
   },
   async log(bin, root, o) {
     const n = Math.min(Math.max(Number(o.count) || 10, 1), 50);
-    const out = await exec(bin, ['log', '-l', String(n), '-b', '.', '-T', '{node|short}\t{author|person}\t{date(date, "%s")}\t{desc|firstline}\n'], root);
+    const sel = o.only ? ['-r', `only("${checkBranch(o.only)}", .)`] : ['-b', '.'];
+    const out = await exec(bin, ['log', '-l', String(n), ...sel, '-T', '{node|short}\t{author|person}\t{date(date, "%s")}\t{desc|firstline}\n'], root);
     return { commits: lines(out).map(l => { const [id, author, date, ...msg] = l.split('\t'); return { id, author, date: Number(date), msg: msg.join('\t') }; }) };
+  },
+  async diff(bin, root) {
+    const st = await exec(bin, ['status', '--unknown'], root);
+    const untracked = lines(st).filter(l => l.startsWith('? ')).map(l => l.slice(2));
+    const tracked = await exec(bin, ['diff', '--git'], root);
+    return cut(tracked + untrackedPatch(root, untracked));
+  },
+  async show(bin, root, o) {
+    const rev = checkRev(o.rev);
+    const head = await exec(bin, ['log', '-r', rev, '-T', '{node|short}\n{author|person}\n{date(date, "%s")}\n{desc}'], root);
+    const [id, author, date, ...msg] = head.split('\n');
+    const patch = await exec(bin, ['diff', '--git', '-c', rev], root);
+    return { commit: { id, author, date: Number(date), msg: msg.join('\n').trim() }, ...cut(patch) };
   },
   async switch(bin, root, o) {
     const b = checkBranch(o.branch);
@@ -246,7 +321,7 @@ const hg = {
 
 /* ---------- Aktionen ---------- */
 
-const ACTIONS = ['info', 'branches', 'log', 'switch', 'create', 'pull', 'push', 'fetch'];
+const ACTIONS = ['info', 'branches', 'log', 'diff', 'show', 'switch', 'create', 'pull', 'push', 'fetch'];
 
 async function run(msg) {
   if (msg.op === 'ping') return { version: VERSION, platform: process.platform, node: process.version };

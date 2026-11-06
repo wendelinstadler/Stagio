@@ -414,6 +414,17 @@ globalThis.I18N = (() => {
     'Hell': 'Light',
     'Dunkel': 'Dark',
     '+ Projekt hinzufügen': '+ Add project',
+    'Lade Änderungen …': 'Loading changes …',
+    'Keine Änderungen.': 'No changes.',
+    'Lokale Änderungen': 'Local changes',
+    'Binärdatei': 'Binary file',
+    'Sehr grosser Diff, nur der Anfang wird gezeigt.': 'Very large diff, only the beginning is shown.',
+    'Keine eigenen Commits, alles ist schon im aktuellen Branch.': 'No own commits, everything is already in the current branch.',
+    'Das Hilfsprogramm ist veraltet. Den Befehl aus Einstellungen → Branch Manager nochmals ausführen.': 'The helper is outdated. Run the command from Settings → Branch Manager again.',
+    'neu': 'new',
+    'gelöscht': 'deleted',
+    'umbenannt': 'renamed',
+    'geändert': 'modified',
     'Details anzeigen': 'Show details',
     'Keine Details gespeichert (Eintrag stammt aus einer älteren Version).': 'No details saved (entry is from an older version).',
     'Keine weiteren Details gespeichert (Eintrag stammt aus einer älteren Version).': 'No further details saved (entry is from an older version).',
@@ -561,6 +572,10 @@ globalThis.I18N = (() => {
     ['Unbekannte Aktion: {0}', 'Unknown action: {0}'],
     ['{0} Klick: senden', '{0} Click: send'],
     ['… {0} weitere', '… {0} more'],
+    ['… {0} weitere Zeilen', '… {0} more lines'],
+    ['Commits, die nur auf {0} sind', 'Commits that are only on {0}'],
+    ['Nur auf {0}, nicht in {1}', 'Only on {0}, not in {1}'],
+    ['Ungültige Commit-ID: {0}', 'Invalid commit ID: {0}'],
   ];
 
   const norm = s => s.replace(/\s+/g, ' ');

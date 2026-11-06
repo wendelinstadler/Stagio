@@ -551,7 +551,7 @@ globalThis.VCS = {
         const err = chrome.runtime.lastError;
         if (err) return reject(new Error(this.explain(err.message)));
         if (!res) return reject(new Error('Keine Antwort vom Hilfsprogramm.'));
-        if (!res.ok) return reject(new Error(res.error));
+        if (!res.ok) return reject(new Error(/^Unbekannte Aktion/.test(res.error ?? '') ? 'Das Hilfsprogramm ist veraltet. Den Befehl aus Einstellungen → Branch Manager nochmals ausführen.' : res.error));
         resolve(res);
       });
     });
@@ -562,6 +562,33 @@ globalThis.VCS = {
     if (/forbidden/i.test(m)) return 'Das Hilfsprogramm kennt diese Extension nicht. install.js mit der ID aus den Einstellungen nochmals ausführen.';
     if (/exited|communicating|failed to start/i.test(m)) return 'Hilfsprogramm startet nicht (Node verschoben?). install.js nochmals ausführen.';
     return m;
+  },
+
+  // Unified Diff (git oder hg --git) in Dateien aufteilen
+  parsePatch(patch) {
+    const files = [];
+    let cur = null;
+    for (const line of String(patch ?? '').split('\n')) {
+      const m = /^diff --git a\/(.*?) b\/(.*)$/.exec(line);
+      if (m) {
+        cur = { file: m[2], from: m[1], s: 'M', add: 0, del: 0, lines: [], binary: false };
+        files.push(cur);
+        continue;
+      }
+      if (!cur) continue;
+      if (!cur.lines.length) {
+        if (/^new file/.test(line)) { cur.s = 'A'; continue; }
+        if (/^deleted file/.test(line)) { cur.s = 'D'; continue; }
+        if (/^rename from /.test(line)) { cur.s = 'R'; continue; }
+        if (/^Binary files|^GIT binary patch/.test(line)) { cur.binary = true; continue; }
+        if (/^(index |old mode|new mode|similarity|rename to|copy |--- |\+\+\+ )/.test(line)) continue;
+      }
+      if (line.startsWith('@@')) cur.lines.push(line);
+      else if (line.startsWith('+')) { cur.add++; cur.lines.push(line); }
+      else if (line.startsWith('-')) { cur.del++; cur.lines.push(line); }
+      else if (line.startsWith(' ') || line.startsWith('\\')) cur.lines.push(line);
+    }
+    return files;
   },
 
   // "feature/{ticket}-{titel}" + "ABC-123" + "Login reparieren" -> "feature/ABC-123-login-reparieren"

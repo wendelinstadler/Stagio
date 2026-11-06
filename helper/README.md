@@ -18,7 +18,7 @@ The program is copied to `~/.stagio` (macOS/Linux) or `%LOCALAPPDATA%\Stagio` (W
 
 ## What it may do
 
-Only these actions, only inside a folder that is a git or hg repository: status, list branches, recent commits, switch branch, create branch, pull, push, fetch, and read/write the file `.stagio.json` in the repository root (team configuration). Commands run without a shell, branch names are validated, and it never waits for a password prompt (pull/push need SSH keys or saved credentials).
+Only these actions, only inside a folder that is a git or hg repository: status, list branches, recent commits, show changes (diffs of the working copy, of commits and of other branches), switch branch, create branch, pull, push, fetch, and read/write the file `.stagio.json` in the repository root (team configuration). Commands run without a shell, branch names are validated, and it never waits for a password prompt (pull/push need SSH keys or saved credentials).
 
 - git: `git switch`, `git switch -c`, `git pull --ff-only` (configurable), `git push -u origin HEAD`, `git fetch --prune`
 - hg: `hg update --check`, `hg branch` / `hg bookmark`, `hg pull --update`, `hg push -r . --new-branch`
