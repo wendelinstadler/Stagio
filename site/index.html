@@ -45,7 +45,7 @@
       <div><b><span class="en">Server status</span><span class="de">Server-Status</span></b><span class="en">A dot per environment shows whether it responds, with the response time.</span><span class="de">Ein Punkt pro Umgebung zeigt, ob sie antwortet, mit Antwortzeit.</span></div>
       <div><b><span class="en">Header presets</span><span class="de">Header-Presets</span></b><span class="en">Send headers like X-Debug or an auth token with every request to an environment. Can be turned off per environment.</span><span class="de">Header wie X-Debug oder ein Token bei jedem Aufruf einer Umgebung mitschicken. Pro Umgebung abschaltbar.</span></div>
       <div><b><span class="en">API tester</span><span class="de">API-Tester</span></b><span class="en">Requests and responses in the style of Swagger UI. Imports OpenAPI, cURL, Postman and HAR. One request can be sent to two environments to compare the responses field by field.</span><span class="de">Requests und Antworten im Stil von Swagger UI. Importiert OpenAPI, cURL, Postman und HAR. Ein Request lässt sich an zwei Umgebungen senden, um die Antworten Feld für Feld zu vergleichen.</span></div>
-      <div><b><span class="en">Logs</span><span class="de">Logs</span></b><span class="en">JavaScript errors, console.error and failed requests of your pages. The count is shown on the toolbar icon.</span><span class="de">JavaScript-Fehler, console.error und fehlgeschlagene Requests deiner Seiten. Die Anzahl steht auf dem Icon.</span></div>
+      <div><b><span class="en">Logs</span><span class="de">Logs</span></b><span class="en">JavaScript errors, console.error and failed requests of your pages, with payload and headers. The count is shown on the toolbar icon.</span><span class="de">JavaScript-Fehler, console.error und fehlgeschlagene Requests deiner Seiten, mit Payload und Headern. Die Anzahl steht auf dem Icon.</span></div>
       <div><b><span class="en">Clear data</span><span class="de">Daten löschen</span></b><span class="en">Clears cache, storage and optionally cookies of one environment only. Other sites are not touched.</span><span class="de">Löscht Cache, Storage und auf Wunsch Cookies einer einzigen Umgebung. Andere Seiten bleiben unberührt.</span></div>
       <div><b><span class="en">Team file</span><span class="de">Team-Datei</span></b><span class="en">Projects can be exported as .stagio.json and committed to the repository. Secret values are replaced by variables.</span><span class="de">Projekte lassen sich als .stagio.json exportieren und ins Repo committen. Geheime Werte werden durch Variablen ersetzt.</span></div>
       <div><b><span class="en">Branches</span><span class="de">Branches</span></b><span class="en">git and Mercurial per project: current branch, status, pull, push and switching. Optional, needs a small local <a href="helper.html">helper</a>.</span><span class="de">git und Mercurial pro Projekt: aktueller Branch, Status, Pull, Push und Wechseln. Optional, braucht ein kleines lokales <a href="helper.html">Hilfsprogramm</a>.</span></div>
@@ -72,6 +72,28 @@
         <span class="de">Zeigt den aktuellen Branch jedes Repos mit geänderten Dateien und ungepushten Commits. Neue Branches lassen sich aus einer Ticket-Nummer benennen, zum Beispiel feature/ABC-123-login-reparieren.</span>
       </p>
       <a class="link" href="helper.html"><span class="en">How to set up the helper</span><span class="de">Hilfsprogramm einrichten</span></a>
+    </div>
+  </section>
+
+  <section class="two">
+    <div>
+      <h2><span class="en">Logs</span><span class="de">Logs</span></h2>
+      <p class="lead">
+        <span class="en">JavaScript errors, console.error and failed requests of your pages in one list. Click an entry to see the payload, request and response headers or the stack trace, copy it as cURL or send it again in the API tester.</span>
+        <span class="de">JavaScript-Fehler, console.error und fehlgeschlagene Requests deiner Seiten in einer Liste. Ein Klick auf einen Eintrag zeigt Payload, Request- und Antwort-Header oder den Stacktrace. Als cURL kopieren oder im API-Tester nochmal senden.</span>
+      </p>
+    </div>
+    <div class="shot narrow"><img src="img/screenshot-3.png" alt="Logs"></div>
+  </section>
+
+  <section class="two">
+    <div class="shot narrow"><img src="img/screenshot-5.png" alt="Dark mode"></div>
+    <div>
+      <h2><span class="en">Light and dark</span><span class="de">Hell und dunkel</span></h2>
+      <p class="lead">
+        <span class="en">Follows your system setting, or switch with one click in the popup.</span>
+        <span class="de">Folgt der Einstellung deines Systems, oder mit einem Klick im Popup umschalten.</span>
+      </p>
     </div>
   </section>
 
